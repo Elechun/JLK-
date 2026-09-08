@@ -1,0 +1,51 @@
+{
+  "n_subjects_with_imaging_dir": 1715,
+  "n_in_participants_tsv": 1505,
+  "n_participants_tsv_rows": 1505,
+  "n_tsv_rows_without_imaging": 0,
+  "has_trace": 1715,
+  "has_adc": 1715,
+  "has_mask_acute": 1451,
+  "has_mask_chronic": 203,
+  "acute_mask_empty": 0,
+  "adc_shape_mismatch": 0,
+  "mask_shape_mismatch": 0,
+  "mask_affine_mismatch": 0,
+  "trace_ndim_counts": {
+    "4": 1715
+  },
+  "etiology_counts": {
+    "Cryptogenic": 486,
+    "n/a": 425,
+    "LAA": 262,
+    "NaN": 210,
+    "CE": 159,
+    "SVO": 101,
+    "OtherDet": 72
+  },
+  "manufacturer_counts": {
+    "Philips": 1676,
+    "GE": 20,
+    "Siemens": 19
+  },
+  "field_strength_counts": {
+    "1.5": 1357,
+    "3.0": 358
+  },
+  "slice_thickness_counts": {
+    "5": 1713,
+    "4": 2
+  },
+  "inplane_shape_top": {
+    "(224, 224, 26, 1)": 365,
+    "(224, 224, 25, 1)": 275,
+    "(256, 256, 26, 1)": 248,
+    "(288, 288, 26, 1)": 127,
+    "(384, 384, 24, 1)": 71,
+    "(256, 256, 25, 1)": 69,
+    "(240, 240, 24, 1)": 69,
+    "(240, 240, 26, 1)": 68,
+    "(256, 256, 24, 1)": 58,
+    "(384, 384, 26, 1)": 56
+  }
+}

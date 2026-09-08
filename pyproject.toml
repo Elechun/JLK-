@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "strokeai"
+version = "0.1.0"
+description = "DWI-based acute ischemic stroke lesion segmentation and etiology classification (SOOP / OpenNeuro ds004889)"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26", "scipy>=1.11", "pandas>=2.0", "scikit-learn>=1.3", "scikit-image>=0.22",
+  "nibabel>=5.0", "torch>=2.1", "matplotlib>=3.8", "pyyaml>=6.0", "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

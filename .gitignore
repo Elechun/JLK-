@@ -1,0 +1,21 @@
+# data & artifacts (never commit patient data)
+data/raw/
+data/cache*/
+data/*.npz
+*.nii
+*.nii.gz
+*.part
+runs/
+*.pt
+*.pth
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+# misc
+.DS_Store
+*.log

@@ -1,0 +1,7 @@
+etiology_code,mask_acute_voxels,test,train,val
+CE,lesion,22,105,22
+Cryptogenic,lesion,60,283,60
+LAA,lesion,35,162,35
+OtherDet,lesion,10,42,10
+SVO,lesion,13,58,13
+n/a,lesion,78,365,78

@@ -1,0 +1,66 @@
+{
+ "n_subjects": 218,
+ "splits": {
+  "test": 218
+ },
+ "img_shapes": {
+  "(26, 2, 128, 128)": 109,
+  "(25, 2, 128, 128)": 64,
+  "(24, 2, 128, 128)": 27,
+  "(27, 2, 128, 128)": 10,
+  "(28, 2, 128, 128)": 4,
+  "(29, 2, 128, 128)": 1,
+  "(23, 2, 128, 128)": 1,
+  "(31, 2, 128, 128)": 1,
+  "(32, 2, 128, 128)": 1
+ },
+ "mask_binary_all": true,
+ "mask_unique_violations": [],
+ "img_all_finite": true,
+ "img_range": [
+  -10.0,
+  10.0
+ ],
+ "in_plane_128_all": true,
+ "empty_mask_after_resample": 0,
+ "empty_mask_natively": 0,
+ "min_cached_mask_voxels": 1,
+ "vol_ratio_quantiles": {
+  "0.0": 0.34027779560661825,
+  "0.01": 0.7783854612525568,
+  "0.05": 0.9356388915012268,
+  "0.5": 0.990513669332538,
+  "0.95": 1.0672266515168713,
+  "0.99": 1.1412947785472396,
+  "1.0": 1.3781249325137968
+ },
+ "voxel_volume_mm3": {
+  "min": 14.502322712476861,
+  "median": 22.424162103275073,
+  "max": 27.467001475276124,
+  "ratio_max_min": 1.8939725738998547
+ },
+ "geometry": {
+  "orient_raw_counts": {
+   "LAS": 218
+  },
+  "orient_canon_counts": {
+   "RAS": 218
+  },
+  "mask_affine_eq_trace_canon_all": true,
+  "adc_affine_eq_trace_raw_all": true,
+  "adc_affine_eq_trace_canon_all": true,
+  "adc_affine_mismatch_subjects": [],
+  "adc_affine_mismatch_n": 0,
+  "adc_max_abs_affine_diff_max": 0.0
+ },
+ "acute_chronic": {
+  "n_with_chronic": 30,
+  "n_acute_eq_chronic": 0,
+  "acute_eq_chronic_subjects": [],
+  "n_acute_subset_chronic": 0,
+  "acute_subset_chronic_subjects": [],
+  "n_overlap_any": 12,
+  "acute_chronic_dice_median_when_overlap": 0.007403893024966829
+ }
+}

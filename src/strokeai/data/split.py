@@ -7,14 +7,25 @@ import pandas as pd
 from ..utils import sha256_of
 
 
+def _flag(idx: pd.DataFrame, col: str) -> pd.Series:
+    """Index columns round-trip through CSV as object dtype; NaN -> False, no silent-downcast warning."""
+    return idx[col].isin([True, "True", 1, 1.0]).to_numpy(dtype=bool)
+
+
 def eligible_for_segmentation(idx: pd.DataFrame) -> pd.DataFrame:
     """Subjects with TRACE + ADC + acute mask whose shapes/affines agree. Empty acute masks are kept
-    (they are legitimate negatives) but flagged."""
-    ok = (idx["has_trace"] & idx["has_adc"] & idx["has_mask_acute"]
-          & idx["adc_shape_matches_trace"].fillna(False).astype(bool)
-          & idx["mask_shape_matches_trace"].fillna(False).astype(bool)
-          & idx["mask_affine_matches_trace"].fillna(False).astype(bool)
-          & idx["trace_extra_dims_singleton"].fillna(False).astype(bool))
+    (they are legitimate negatives) but flagged.
+
+    NOTE (A3, 2026-09-09): the ADC *affine* is deliberately NOT part of this filter. One train subject
+    (sub-235) has an ADC grid displaced ~6.6 mm from TRACE; adding the condition here would drop it and
+    change `data/splits.json`'s sha256, which the charter pins. `preprocess_subject` resamples that ADC
+    onto the TRACE grid instead, which fixes the data without moving anybody between splits.
+    """
+    ok = (_flag(idx, "has_trace") & _flag(idx, "has_adc") & _flag(idx, "has_mask_acute")
+          & _flag(idx, "adc_shape_matches_trace")
+          & _flag(idx, "mask_shape_matches_trace")
+          & _flag(idx, "mask_affine_matches_trace")
+          & _flag(idx, "trace_extra_dims_singleton"))
     return idx[ok].copy()
 
 

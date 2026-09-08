@@ -21,16 +21,17 @@ def one(args):
     sid, raw, out, size = args
     dest = out / f"{sid}.npz"
     if dest.exists():
-        return sid, "cached"
+        return sid, "cached", {}
     try:
         r = preprocess_subject(raw / sid / "dwi" / f"{sid}_rec-TRACE_dwi.nii.gz",
                                raw / sid / "dwi" / f"{sid}_rec-ADC_dwi.nii.gz",
                                raw / "derivatives" / "lesion_masks" / sid / "dwi" / f"{sid}_space-TRACE_desc-lesionAcute_mask.nii.gz",
                                size)
+        flags = r.pop("flags", {})  # kept out of the .npz so the cache stays byte-reproducible
         np.savez(dest, **r)
-        return sid, "ok"
+        return sid, "ok", flags
     except Exception as e:  # noqa: BLE001
-        return sid, f"ERROR {e}"
+        return sid, f"ERROR {e}", {}
 
 
 def main():
@@ -46,19 +47,27 @@ def main():
     a.out.mkdir(parents=True, exist_ok=True)
     sp = json.load(open(a.splits))
     ids = [s for w in a.which for s in sp[w]]
-    errs = []
+    errs, flagged = [], {}
     with cf.ProcessPoolExecutor(a.workers) as ex:
-        for i, (sid, st) in enumerate(ex.map(one, [(s, a.raw, a.out, a.size) for s in ids], chunksize=8)):
+        for i, (sid, st, fl) in enumerate(ex.map(one, [(s, a.raw, a.out, a.size) for s in ids], chunksize=8)):
             if st.startswith("ERROR"):
                 errs.append((sid, st))
+            interesting = {k: v for k, v in fl.items() if k != "mask_max_value" or v != 1.0}
+            if interesting:
+                flagged[sid] = interesting
             if (i + 1) % 200 == 0:
                 print(f"[{i+1}/{len(ids)}] errors={len(errs)}", flush=True)
     manifest_p = a.out / "_manifest.json"
     prev = json.load(open(manifest_p)) if manifest_p.exists() else {}
     done = sorted(set(prev.get("which", [])) | set(a.which))
+    flags = {**prev.get("flags", {}), **flagged}
+    counts = {}
+    for f in flags.values():
+        for k in f:
+            counts[k] = counts.get(k, 0) + 1
     json.dump({"size": a.size, "which": done, "n": len(ids), "n_total_cached": len(list(a.out.glob("sub-*.npz"))),
-               "errors": errs}, open(manifest_p, "w"), indent=1)
-    print("done, errors:", errs[:10], len(errs))
+               "errors": errs, "flag_counts": counts, "flags": flags}, open(manifest_p, "w"), indent=1)
+    print("done, errors:", errs[:10], len(errs), "| flag counts:", counts)
 
 
 if __name__ == "__main__":

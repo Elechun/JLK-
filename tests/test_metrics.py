@@ -55,3 +55,18 @@ def test_summary_excludes_empty_gt_from_dice():
     assert s["dice_pos_mean"] == pytest.approx((0.8 + 0.4 + 0.0) / 3)
     assert s["detection_sensitivity"] == pytest.approx(2 / 3)
     assert s["detection_confusion"] == {"tp": 2, "fn": 1, "fp": 0, "tn": 1}
+
+
+def test_volume_agreement_reports_relative_error():
+    """A3/A2 hand-off: volume error must be reported in mL *and* in %, because lesion volumes span
+    four orders of magnitude and mL-only errors are dominated by the largest lesions."""
+    import numpy as np
+
+    from strokeai.metrics import volume_agreement
+
+    gt = np.array([1.0, 10.0, 100.0])
+    pred = np.array([2.0, 11.0, 110.0])
+    va = volume_agreement(pred, gt)
+    assert va.mae_ml == pytest.approx((1 + 1 + 10) / 3)
+    assert va.mape_pct == pytest.approx((100 + 10 + 10) / 3)
+    assert va.median_abs_pct_err == pytest.approx(10.0)

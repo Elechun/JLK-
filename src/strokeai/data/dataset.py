@@ -35,10 +35,13 @@ class SliceDataset(Dataset):
         self.table = cache.slice_table()
         self.neg_pos_ratio = neg_pos_ratio
         self.augment = augment
+        self.seed = int(seed)
+        self.epoch = -1
         self.rng = np.random.default_rng(seed)
         self.resample()
 
     def resample(self) -> None:
+        self.epoch += 1
         pos = [t for t in self.table if t[2]]
         neg = [t for t in self.table if not t[2]]
         if self.neg_pos_ratio is None or len(pos) == 0:
@@ -57,10 +60,14 @@ class SliceDataset(Dataset):
         x = self.cache.img[sid][s].astype(np.float32)  # (2, H, W)
         y = self.cache.mask[sid][s].astype(np.float32)[None]  # (1, H, W)
         if self.augment:
-            if self.rng.random() < 0.5:  # left-right flip (axis W)
+            # Per-item generator keyed by (seed, epoch, index): reproducible and independent of
+            # DataLoader `num_workers` (a single self.rng would be *forked* into every worker, so each
+            # worker would replay the same augmentation stream and the result would depend on worker count).
+            rng = np.random.default_rng((self.seed, self.epoch, i))
+            if rng.random() < 0.5:  # left-right flip (axis W)
                 x = x[:, :, ::-1]
                 y = y[:, :, ::-1]
-            scale = self.rng.uniform(0.9, 1.1, size=(2, 1, 1)).astype(np.float32)
-            shift = self.rng.uniform(-0.1, 0.1, size=(2, 1, 1)).astype(np.float32)
+            scale = rng.uniform(0.9, 1.1, size=(2, 1, 1)).astype(np.float32)
+            shift = rng.uniform(-0.1, 0.1, size=(2, 1, 1)).astype(np.float32)
             x = x * scale + shift
         return torch.from_numpy(np.ascontiguousarray(x)), torch.from_numpy(np.ascontiguousarray(y))

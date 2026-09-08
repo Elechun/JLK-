@@ -1,0 +1,81 @@
+{
+ "n_subjects": 1233,
+ "splits": {
+  "train": 1015,
+  "val": 218
+ },
+ "img_shapes": {
+  "(26, 2, 128, 128)": 646,
+  "(25, 2, 128, 128)": 292,
+  "(24, 2, 128, 128)": 178,
+  "(27, 2, 128, 128)": 60,
+  "(28, 2, 128, 128)": 45,
+  "(23, 2, 128, 128)": 5,
+  "(29, 2, 128, 128)": 2,
+  "(30, 2, 128, 128)": 2,
+  "(22, 2, 128, 128)": 1,
+  "(21, 2, 128, 128)": 1,
+  "(32, 2, 128, 128)": 1
+ },
+ "mask_binary_all": true,
+ "mask_unique_violations": [],
+ "img_all_finite": true,
+ "img_range": [
+  -6.0,
+  6.0
+ ],
+ "in_plane_128_all": true,
+ "empty_mask_after_resample": 0,
+ "empty_mask_natively": 0,
+ "min_cached_mask_voxels": 3,
+ "vol_ratio_quantiles": {
+  "0.0": 0.6666666506544311,
+  "0.01": 0.8363032357537666,
+  "0.05": 0.9198361975698377,
+  "0.5": 0.9903504033992621,
+  "0.95": 1.0597463790535882,
+  "0.99": 1.1316014728459332,
+  "1.0": 1.380681745200378
+ },
+ "voxel_volume_mm3": {
+  "min": 17.619245493406677,
+  "median": 22.467569053290052,
+  "max": 28.713959794232995,
+  "ratio_max_min": 1.6296929289610096
+ },
+ "geometry": {
+  "orient_raw_counts": {
+   "LAS": 1233
+  },
+  "orient_canon_counts": {
+   "RAS": 1233
+  },
+  "mask_affine_eq_trace_canon_all": true,
+  "adc_affine_eq_trace_raw_all": false,
+  "adc_affine_eq_trace_canon_all": false,
+  "adc_affine_mismatch_subjects": [
+   "sub-235"
+  ],
+  "adc_affine_mismatch_n": 1,
+  "adc_max_abs_affine_diff_max": 237.17543029785156
+ },
+ "acute_chronic": {
+  "n_with_chronic": 168,
+  "n_acute_eq_chronic": 3,
+  "acute_eq_chronic_subjects": [
+   "sub-235",
+   "sub-1720",
+   "sub-1737"
+  ],
+  "n_acute_subset_chronic": 5,
+  "acute_subset_chronic_subjects": [
+   "sub-235",
+   "sub-1095",
+   "sub-1132",
+   "sub-1720",
+   "sub-1737"
+  ],
+  "n_overlap_any": 59,
+  "acute_chronic_dice_median_when_overlap": 0.009334889148191364
+ }
+}

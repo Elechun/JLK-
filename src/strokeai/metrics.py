@@ -38,6 +38,11 @@ class VolumeAgreement:
     loa_low_ml: float  # Bland-Altman 95% limits of agreement
     loa_high_ml: float
     mae_ml: float
+    # A3 2026-09-09: lesion volumes span 0.07-557 mL and the native voxel volume varies 5.9x across
+    # subjects, so an mL-only error is dominated by the few largest lesions. Report the relative error
+    # next to it (A2 hand-off item 5).
+    mape_pct: float  # mean |pred-gt| / gt x 100
+    median_abs_pct_err: float  # median |pred-gt| / gt x 100 (robust to the long tail)
     icc21: float  # ICC(2,1) absolute agreement, two-way random, single measure
 
 
@@ -66,6 +71,8 @@ def volume_agreement(pred_ml: np.ndarray, gt_ml: np.ndarray) -> VolumeAgreement:
         loa_low_ml=float(diff.mean() - 1.96 * diff.std(ddof=1)) if len(diff) > 1 else float("nan"),
         loa_high_ml=float(diff.mean() + 1.96 * diff.std(ddof=1)) if len(diff) > 1 else float("nan"),
         mae_ml=float(np.abs(diff).mean()),
+        mape_pct=float(np.mean(np.abs(diff[gt_ml > 0]) / gt_ml[gt_ml > 0]) * 100) if (gt_ml > 0).any() else float("nan"),
+        median_abs_pct_err=float(np.median(np.abs(diff[gt_ml > 0]) / gt_ml[gt_ml > 0]) * 100) if (gt_ml > 0).any() else float("nan"),
         icc21=icc21(pred_ml, gt_ml) if len(pred_ml) > 1 else float("nan"),
     )
 

@@ -1,0 +1,20 @@
+# 2-D U-Net, TRACE+ADC, 128x128, CPU-friendly. Change hyper-parameters HERE only (A4 rule).
+seed: 2026
+threads: 4
+size: 128
+base_channels: 16
+depth: 4
+epochs: 12
+batch_size: 32
+lr: 0.001
+min_lr: 0.00002
+warmup_frac: 0.05
+weight_decay: 0.0001
+grad_clip: 1.0
+dice_weight: 1.0
+pos_weight: null
+neg_pos_ratio: 1.0      # negatives sampled per positive slice each epoch (null = all slices)
+augment: true
+threshold: 0.5
+num_workers: 0
+log_every: 50

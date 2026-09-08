@@ -35,3 +35,16 @@ def test_stratification_roughly_preserved():
     s = make_split(df, seed=2)
     frac = lambda ids: (df.set_index("participant_id").loc[ids, "etiology_code"] == "SVO").mean()  # noqa: E731
     assert abs(frac(s["train"]) - frac(s["test"])) < 0.05
+
+
+def test_stratification_uses_etiology_and_lesion_size():
+    """A3 F9 + A6 caveat: `stratum()` reads BOTH the etiology label and the lesion-size band, so the
+    split boundaries were shaped by test *metadata*. The holdout is blind to pixels, not to labels -
+    this test pins the fact so the caveat cannot silently disappear from the reports."""
+    import inspect
+
+    from strokeai.data.split import stratum
+
+    src = inspect.getsource(stratum)
+    assert "etiology_code" in src
+    assert "mask_acute_ml" in src

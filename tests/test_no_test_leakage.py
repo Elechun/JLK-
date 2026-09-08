@@ -6,6 +6,7 @@ test subject's image or mask themselves (subject *ids* are only used for set ari
 import ast
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -40,15 +41,34 @@ def test_eval_seg_defaults_to_val():
 
 
 def test_run_all_pipeline_preprocesses_only_train_and_val():
+    """The pipeline itself must never touch the test split.
+
+    A6 2026-09-09 moved the final-evaluation command list into a quoted here-document
+    (`cat <<'MSG' ... MSG`), which prints the commands instead of running them. The check therefore
+    classifies every line as executed or not-executed first, and only then asserts.
+    """
     lines = (ROOT / "scripts/run_all.sh").read_text().splitlines()
-    runs = [ln for ln in lines if ln.strip().startswith("python scripts/preprocess.py")]
-    assert runs, "run_all.sh no longer calls preprocess.py"
+    executed, in_heredoc = [], False
+    for ln in lines:
+        stripped = ln.strip()
+        if not in_heredoc and re.match(r"^\w[\w ]*<<-?\s*'?\w+'?", stripped):
+            in_heredoc = True
+            continue
+        if in_heredoc:
+            if stripped in ("MSG", "EOF"):
+                in_heredoc = False
+            continue
+        if stripped.startswith("echo"):
+            continue
+        executed.append(ln)
+    assert not in_heredoc, "unterminated here-document in run_all.sh"
+
+    runs = [ln for ln in executed if ln.strip().startswith("python scripts/preprocess.py")]
+    assert runs, "run_all.sh no longer calls preprocess.py outside the final-evaluation banner"
     for ln in runs:
         assert "--which train val" in ln and "--which train val test" not in ln, ln
-    # the test-set commands must stay behind the final-evaluation banner (echoed, not executed)
-    for ln in lines:
-        if "--which test" in ln or "--split test" in ln:
-            assert ln.strip().startswith("echo"), f"test split executed inside the pipeline: {ln}"
+    for ln in executed:
+        assert "--which test" not in ln and "--split test" not in ln, f"test split executed inside the pipeline: {ln}"
 
 
 @pytest.mark.skipif(not (ROOT / "data/splits.json").exists(), reason="no data/splits.json in this checkout")

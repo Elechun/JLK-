@@ -88,6 +88,22 @@ def bootstrap_ci(values: np.ndarray, stat=np.nanmean, n_boot: int = 2000, alpha:
     return float(stat(values)), float(np.nanpercentile(boots, 100 * alpha / 2)), float(np.nanpercentile(boots, 100 * (1 - alpha / 2)))
 
 
+def bootstrap_icc_ci(pred_ml: np.ndarray, gt_ml: np.ndarray, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0):
+    """Percentile bootstrap CI of ICC(2,1), resampling *subjects* (the pair moves together).
+
+    The charter's ICC threshold (0.85) sits inside this interval for the val split, so the point
+    estimate alone must never be reported (A6 2026-09-09).
+    """
+    pred_ml = np.asarray(pred_ml, float)
+    gt_ml = np.asarray(gt_ml, float)
+    n = len(pred_ml)
+    if n < 2:
+        return float("nan"), float("nan"), float("nan")
+    rng = np.random.default_rng(seed)
+    boots = np.array([icc21(pred_ml[i], gt_ml[i]) for i in (rng.integers(0, n, n) for _ in range(n_boot))])
+    return float(icc21(pred_ml, gt_ml)), float(np.nanpercentile(boots, 100 * alpha / 2)), float(np.nanpercentile(boots, 100 * (1 - alpha / 2)))
+
+
 def segmentation_summary(per_subject: list[dict], seed: int = 0) -> dict:
     """per_subject: dicts with keys dice (nan if GT empty), gt_ml, pred_ml, gt_pos (bool), pred_pos (bool)."""
     dices = np.array([d["dice"] for d in per_subject], float)
@@ -116,14 +132,47 @@ def segmentation_summary(per_subject: list[dict], seed: int = 0) -> dict:
     }
     if va:
         out["volume"] = va.__dict__
-    # Dice stratified by lesion size (small lesions are the clinically hard ones: lacunes < 1.5 cm ~ < 2 mL)
+    # Dice stratified by lesion size (small lesions are the clinically hard ones: lacunes < 1.5 cm ~ < 2 mL).
+    # A3/A6 2026-09-09: after the 128^2 resample the smallest lesion is 3 voxels, so a single voxel moves
+    # Dice by > 0.1 in the [0,2) mL band. Dice alone is therefore not interpretable there -> every band
+    # also reports whether the lesion was DETECTED at all and the relative volume error.
     bins = [(0, 2), (2, 10), (10, 50), (50, np.inf)]
-    out["dice_by_gt_volume_ml"] = {
-        f"[{a},{b})": {"n": int(m.sum()), "dice_mean": float(np.nanmean(dices[m])) if m.any() else float("nan")}
-        for a, b in bins
-        for m in [pos & (gt_ml >= a) & (gt_ml < b)]
-    }
+
+    def _band(m):
+        pct = np.abs(pred_ml[m] - gt_ml[m]) / gt_ml[m] * 100 if m.any() else np.array([])
+        return {"n": int(m.sum()),
+                "dice_mean": float(np.nanmean(dices[m])) if m.any() else float("nan"),
+                "dice_median": float(np.nanmedian(dices[m])) if m.any() else float("nan"),
+                "detect_frac": float(np.mean(pred_pos[m])) if m.any() else float("nan"),
+                "median_abs_pct_err": float(np.median(pct)) if m.any() else float("nan"),
+                "median_gt_ml": float(np.median(gt_ml[m])) if m.any() else float("nan")}
+
+    out["dice_by_gt_volume_ml"] = {f"[{a},{b})": _band(pos & (gt_ml >= a) & (gt_ml < b)) for a, b in bins}
+    if va:
+        # the ICC threshold in the charter sits inside the bootstrap CI, so the CI is not optional
+        _, lo_i, hi_i = bootstrap_icc_ci(pred_ml[pos], gt_ml[pos], seed=seed)
+        out["volume"]["icc21_ci95"] = [lo_i, hi_i]
     return out
+
+
+def laa_vs_ce_auc(y_true: np.ndarray, proba: np.ndarray, classes: list) -> float:
+    """AUC for LAA vs CE among the subjects whose true label is LAA or CE, scored by p(LAA) - p(CE).
+
+    A6 2026-09-09 (charter, "etiology"): the 4-class macro AUC is inflated by the TOAST definition of
+    SVO ("lacune < 1.5 cm"), which makes lesion volume alone a strong classifier. LAA and CE are both
+    large-vessel/large-lesion classes, so this axis is where the label-definition shortcut is weakest
+    and is therefore the primary etiology criterion. Returns NaN when either class is absent.
+    """
+    from sklearn.metrics import roc_auc_score
+
+    y_true = np.asarray(y_true)
+    if "LAA" not in classes or "CE" not in classes:
+        return float("nan")
+    m = np.isin(y_true, ["LAA", "CE"])
+    if m.sum() < 2 or len(set(y_true[m])) < 2:
+        return float("nan")
+    score = proba[m, classes.index("LAA")] - proba[m, classes.index("CE")]
+    return float(roc_auc_score((y_true[m] == "LAA").astype(int), score))
 
 
 def multiclass_auc(y_true: np.ndarray, proba: np.ndarray, classes: list) -> dict:

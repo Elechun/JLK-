@@ -1,0 +1,77 @@
+{
+ "note": "test etiology subgroup sizes are ESTIMATED from dev proportions; test labels were not read",
+ "estimated_test_counts": {
+  "LAA": 34.8,
+  "CE": 22.5,
+  "SVO": 12.6,
+  "Others": 9.2
+ },
+ "estimated_test_labelled_subjects": 79.0,
+ "criteria": {
+  "laa_vs_ce_auc > 0.5": {
+   "dev_estimate": 0.6550621527638995,
+   "se_test_est": 0.07274185388067862,
+   "power_if_true_equals_dev": 0.983483304561948,
+   "false_pass_if_true_is_chance": 0.5,
+   "expected_ci95_halfwidth": 0.1425740336061301
+  },
+  "laa_vs_ce_auc > 0.55": {
+   "dev_estimate": 0.6550621527638995,
+   "se_test_est": 0.07274185388067862,
+   "power_if_true_equals_dev": 0.9256748098745587,
+   "false_pass_if_true_is_chance": 0.26399050968206417,
+   "expected_ci95_halfwidth": 0.1425740336061301
+  },
+  "laa_vs_ce_auc > 0.6": {
+   "dev_estimate": 0.6550621527638995,
+   "se_test_est": 0.07274185388067862,
+   "power_if_true_equals_dev": 0.7754609411015709,
+   "false_pass_if_true_is_chance": 0.10344164872425132,
+   "expected_ci95_halfwidth": 0.1425740336061301
+  },
+  "laa_vs_ce_auc > 0.65": {
+   "dev_estimate": 0.6550621527638995,
+   "se_test_est": 0.07274185388067862,
+   "power_if_true_equals_dev": 0.5277402597305438,
+   "false_pass_if_true_is_chance": 0.02916078505273134,
+   "expected_ci95_halfwidth": 0.1425740336061301
+  },
+  "macro_auc_ovr": {
+   "dev_estimate": 0.7167175614678953,
+   "se_test_est_lower_bound": 0.03890395311143216,
+   "per_class_se": {
+    "LAA": 0.06298770213478815,
+    "CE": 0.0709584485320491,
+    "SVO": 0.06835257214009018,
+    "Others": 0.10267256170312351
+   },
+   "comment": "per-class OvR AUCs are correlated; the macro SE is between se_macro and mean(per_class_se)",
+   "mean_per_class_se": 0.07624282112751272
+  },
+  "dice_pos_mean >= 0.55": {
+   "val_estimate": 0.6855011721336928,
+   "val_bootstrap_se": 0.019016234191045995,
+   "test_se_est": 0.019016234191045995,
+   "margin_over_threshold_in_se": 7.12555234503238,
+   "power_if_true_equals_val": 0.9999999999994817
+  },
+  "icc21 >= 0.85": {
+   "val_estimate": 0.9138424825978427,
+   "val_bootstrap_ci95": [
+    0.7979411531452485,
+    0.9896146517012434
+   ],
+   "val_bootstrap_se_approx": 0.04889630065203952,
+   "seed_sd_A4": 0.05,
+   "margin_over_threshold": 0.06384248259784275,
+   "comment": "the bootstrap CI is strongly asymmetric (ICC is bounded above by 1); the lower bound is the number that matters and it sits BELOW the 0.85 threshold"
+  },
+  "detection_sensitivity >= 0.90": {
+   "val_estimate": 0.9724770642201835,
+   "n": 218,
+   "binomial_se_at_val_estimate": 0.011080486150422687,
+   "max_false_negatives_allowed_at_218": 21,
+   "val_false_negatives": 6
+  }
+ }
+}

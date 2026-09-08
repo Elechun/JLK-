@@ -31,7 +31,30 @@ python scripts/predict_masks.py --run runs/seg_unet2d --which train val
 python scripts/train_cls.py --mask gt --model logreg
 python scripts/train_cls.py --mask pred --pred-dir runs/seg_unet2d/pred_masks --model logreg
 
-echo "== DONE (dev). Test-set evaluation is a separate, one-time step after A6 sign-off:"
-echo "   python scripts/preprocess.py --config configs/seg_unet2d.yaml --workers \$(nproc) --which test"
-echo "   python scripts/eval_seg.py --run runs/seg_unet2d --split test"
-echo "   python scripts/predict_masks.py --run runs/seg_unet2d --which test && python scripts/train_cls.py --mask pred --pred-dir runs/seg_unet2d/pred_masks --final"
+cat <<'MSG'
+== DONE (dev).
+
+Test-set evaluation is a separate, ONE-TIME step. It is frozen by the charter (section
+"C. 최종 test 평가에 사용할 설정") and signed off in docs/agents/A6_report.md. Run it exactly as
+written -- no threshold change, no checkpoint change, no re-training, and report the numbers
+whether or not they meet the pre-registered expectations.
+
+  export PYTHONPATH=src CUDA_VISIBLE_DEVICES=0
+  # 0. regression tests + proof that the cache still holds no test subject
+  python -m pytest -q
+  # 1. FIRST time any test image is read
+  python scripts/preprocess.py --config configs/seg_unet2d.yaml --workers "$(nproc)" --which test
+  # 2. test-cohort integrity / distribution (A3 hand-off 5) -- separate out dir, do not overwrite dev
+  python scripts/analysis/a3_checks.py --which test --workers 32 --out results/a3_test
+  python scripts/analysis/a3_stats.py  --which test --workers 32 --out results/a3_test
+  # 3. segmentation, once
+  python scripts/eval_seg.py --run runs/seg_unet2d --split test
+  # 4. diagnostics on the test predictions
+  python scripts/diagnose.py --run runs/seg_unet2d --eval runs/seg_unet2d/eval_test.json \
+         --flags results/a3_test/acute_chronic_flags.csv --out results/diag_seg_unet2d_test
+  python scripts/analysis/a6_failures.py --run runs/seg_unet2d --split test
+  # 5. etiology classifier, once (deployment-like first, oracle second)
+  python scripts/predict_masks.py --run runs/seg_unet2d --which test
+  python scripts/train_cls.py --mask pred --pred-dir runs/seg_unet2d/pred_masks --final
+  python scripts/train_cls.py --mask gt --final
+MSG

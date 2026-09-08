@@ -70,3 +70,57 @@ def test_volume_agreement_reports_relative_error():
     assert va.mae_ml == pytest.approx((1 + 1 + 10) / 3)
     assert va.mape_pct == pytest.approx((100 + 10 + 10) / 3)
     assert va.median_abs_pct_err == pytest.approx(10.0)
+
+
+def test_small_lesion_band_reports_detection_and_volume_error():
+    """A3 hand-off 3 / A6: in the [0,2) mL band a single voxel moves Dice by >0.1 (the smallest cached
+    lesion is 3 voxels), so Dice alone is not interpretable there - the band must also carry whether the
+    lesion was detected at all and the relative volume error."""
+    per = [
+        {"dice": 0.2, "gt_ml": 0.5, "pred_ml": 0.25, "gt_pos": True, "pred_pos": True},
+        {"dice": 0.0, "gt_ml": 1.0, "pred_ml": 0.0, "gt_pos": True, "pred_pos": False},
+        {"dice": 0.9, "gt_ml": 20.0, "pred_ml": 22.0, "gt_pos": True, "pred_pos": True},
+    ]
+    s = segmentation_summary(per, seed=0)
+    small = s["dice_by_gt_volume_ml"]["[0,2)"]
+    assert small["n"] == 2
+    assert small["detect_frac"] == pytest.approx(0.5)
+    assert small["median_abs_pct_err"] == pytest.approx((50.0 + 100.0) / 2)
+    assert small["median_gt_ml"] == pytest.approx(0.75)
+    assert s["dice_by_gt_volume_ml"]["[10,50)"]["detect_frac"] == pytest.approx(1.0)
+
+
+def test_icc_ci_is_reported_and_brackets_the_point_estimate():
+    """A6: the charter's ICC >= 0.85 threshold falls inside the val bootstrap interval, so the point
+    estimate must never be reported without the interval."""
+    rng = np.random.default_rng(0)
+    gt = rng.uniform(1, 100, 60)
+    pred = gt * rng.uniform(0.8, 1.2, 60)
+    per = [{"dice": 0.7, "gt_ml": float(g), "pred_ml": float(p), "gt_pos": True, "pred_pos": True}
+           for g, p in zip(gt, pred)]
+    s = segmentation_summary(per, seed=0)
+    lo, hi = s["volume"]["icc21_ci95"]
+    assert lo <= s["volume"]["icc21"] <= hi
+    assert hi <= 1.0
+
+
+def test_laa_vs_ce_auc_is_conditional_on_those_two_classes():
+    """A6 charter criterion E1. The metric must ignore SVO / Others rows entirely and score only
+    p(LAA) - p(CE) on the LAA/CE subjects, so that the SVO size shortcut cannot inflate it."""
+    from strokeai.metrics import laa_vs_ce_auc
+
+    classes = ["LAA", "CE", "SVO", "Others"]
+    y = np.array(["LAA", "LAA", "CE", "CE", "SVO", "Others"])
+    proba = np.array([
+        [0.7, 0.1, 0.1, 0.1],   # LAA, confident   -> ranked above
+        [0.5, 0.3, 0.1, 0.1],   # LAA
+        [0.2, 0.6, 0.1, 0.1],   # CE
+        [0.1, 0.7, 0.1, 0.1],   # CE
+        [0.9, 0.0, 0.1, 0.0],   # SVO row: must not be used at all
+        [0.0, 0.9, 0.1, 0.0],   # Others row: must not be used at all
+    ])
+    assert laa_vs_ce_auc(y, proba, classes) == pytest.approx(1.0)
+    # perfectly reversed scores -> 0.0, and the ignored rows still do not matter
+    assert laa_vs_ce_auc(y, proba[:, [1, 0, 2, 3]], classes) == pytest.approx(0.0)
+    # missing class -> NaN, never a silent 0.5
+    assert np.isnan(laa_vs_ce_auc(np.array(["SVO", "Others"]), proba[:2], classes))

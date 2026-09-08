@@ -63,7 +63,9 @@ def robust_zscore(x: np.ndarray, fg: np.ndarray, clip: float = 6.0, clip_mode: s
     clip_mode
       "mad"  -- clip at +-`clip` robust standard deviations (fixed for every subject).
       "pct"  -- clip at the subject's own foreground percentiles (`clip` = the upper tail in %,
-                e.g. clip=0.1 -> [p0.1, p99.9]), capped at +-40 so float16 storage stays exact.
+                e.g. clip=0.1 -> [p0.1, p99.9]), capped at +-40 so the value stays well inside the
+                float16 range (float16 storage is NOT exact for arbitrary values: it keeps ~3 significant
+                decimal digits, e.g. 1.2345 -> 1.234375; the cap only prevents overflow -- A5a item 15).
 
     A4 measured (150 train subjects, unclipped z): the acute lesion median on TRACE sits at z = +6.2, so
     the historical clip of +-6 saturates ~51 % of all lesion voxels, while only 1.9 % of non-lesion brain

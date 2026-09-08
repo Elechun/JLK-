@@ -17,7 +17,15 @@ import numpy as np
 
 
 def dice_binary(pred: np.ndarray, gt: np.ndarray) -> float:
-    """Dice = 2|P∩G| / (|P|+|G|). Returns NaN when both are empty (undefined)."""
+    """Dice = 2|P∩G| / (|P|+|G|). Returns NaN when both are empty (undefined).
+
+    Shapes must match exactly: NumPy broadcasting would otherwise let a mis-aligned pair such as
+    (1, 3) vs (3, 1) return Dice = 3.0 without complaint (A5a item 16).
+    """
+    pred = np.asarray(pred)
+    gt = np.asarray(gt)
+    if pred.shape != gt.shape:
+        raise ValueError(f"pred/gt shape mismatch: {pred.shape} vs {gt.shape}")
     pred = pred.astype(bool)
     gt = gt.astype(bool)
     denom = pred.sum() + gt.sum()
@@ -105,10 +113,23 @@ def bootstrap_icc_ci(pred_ml: np.ndarray, gt_ml: np.ndarray, n_boot: int = 2000,
 
 
 def segmentation_summary(per_subject: list[dict], seed: int = 0) -> dict:
-    """per_subject: dicts with keys dice (nan if GT empty), gt_ml, pred_ml, gt_pos (bool), pred_pos (bool)."""
+    """per_subject: dicts with keys dice (nan if GT empty), gt_ml, pred_ml, gt_pos (bool), pred_pos (bool),
+    and optionally overlap_pos (bool: pred ∩ GT non-empty).
+
+    Detection semantics (A5b 2026-09-09, A5a item 13):
+      * `detection_sensitivity`         = P(pred mask non-empty | GT non-empty).  This is the charter's S2
+                                          definition ("환자 단위 검출 = 예측 마스크 비어 있지 않음") and is kept
+                                          unchanged, but it is a *non-empty-output rate*: a single stray voxel
+                                          anywhere counts as TP (val: 9/218 subjects have Dice = 0 yet count).
+      * `detection_sensitivity_overlap` = P(pred ∩ GT non-empty | GT non-empty): the prediction touches the
+                                          lesion.  Reported next to it whenever `overlap_pos` is supplied.
+      Both are NaN (not 0) when there is no GT-positive subject.
+    """
     dices = np.array([d["dice"] for d in per_subject], float)
     gt_pos = np.array([d["gt_pos"] for d in per_subject], bool)
     pred_pos = np.array([d["pred_pos"] for d in per_subject], bool)
+    has_overlap = all("overlap_pos" in d for d in per_subject) and len(per_subject) > 0
+    overlap_pos = np.array([d.get("overlap_pos", False) for d in per_subject], bool)
     gt_ml = np.array([d["gt_ml"] for d in per_subject], float)
     pred_ml = np.array([d["pred_ml"] for d in per_subject], float)
 
@@ -126,10 +147,14 @@ def segmentation_summary(per_subject: list[dict], seed: int = 0) -> dict:
         "dice_pos_mean": mean_dice,
         "dice_pos_ci95": [lo, hi],
         "dice_pos_median": med,
-        "detection_sensitivity": tp / max(tp + fn, 1),
-        "detection_specificity": tn / max(tn + fp, 1) if (tn + fp) > 0 else float("nan"),
+        "detection_sensitivity": tp / (tp + fn) if (tp + fn) > 0 else float("nan"),
+        "detection_specificity": tn / (tn + fp) if (tn + fp) > 0 else float("nan"),
         "detection_confusion": {"tp": tp, "fn": fn, "fp": fp, "tn": tn},
     }
+    if has_overlap:
+        tp_o = int((gt_pos & overlap_pos).sum())
+        out["detection_sensitivity_overlap"] = tp_o / (tp + fn) if (tp + fn) > 0 else float("nan")
+        out["n_pred_nonempty_but_no_overlap"] = int((gt_pos & pred_pos & ~overlap_pos).sum())
     if va:
         out["volume"] = va.__dict__
     # Dice stratified by lesion size (small lesions are the clinically hard ones: lacunes < 1.5 cm ~ < 2 mL).

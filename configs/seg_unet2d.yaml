@@ -30,6 +30,10 @@ dice_reduction: batch   # "batch" = one micro-Dice per batch, "sample" = mean of
 pos_weight: null
 neg_pos_ratio: 1.0      # negatives sampled per positive slice each epoch (null = all slices)
 augment: true
+flip_axis: ap           # mirror augmentation axis. Cache is (S,C,H,W) with H = left-right, W = anterior-posterior
+                        # (A5b 2026-09-09). The shipped run was trained with the W flip = "ap" (the code comment
+                        # called it "left-right" but it was not). Options: lr | ap | both | none.
+                        # A5b measured lr vs ap at 40 epochs x 3 seeds (docs/agents/A5b_report.md) before deciding.
 threshold: 0.5
 
 # --- runtime (GPU) -------------------------------------------------------------------------------

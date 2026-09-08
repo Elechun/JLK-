@@ -89,6 +89,8 @@
    "fp": 0,
    "tn": 0
   },
+  "detection_sensitivity_overlap": 0.9311926605504587,
+  "n_pred_nonempty_but_no_overlap": 9,
   "volume": {
    "n": 218,
    "pearson_r": 0.9234641943107836,

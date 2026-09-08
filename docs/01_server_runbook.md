@@ -49,7 +49,7 @@ bash scripts/run_all.sh
 에이전트 모델은 참조 구성대로 A1~A4·A6 = Opus, A5a = Codex(GPT), A5b = Fable(이 세션 모델), Astra = Fable.
 
 ## 4. 지켜야 할 규칙 (CLAUDE.md 요약)
-- 테스트셋은 9단계 전까지 아무 스크립트도 읽지 않는다. 모델 선택은 val 로만.
+- 테스트셋 영상·마스크는 9단계 전까지 전처리·학습·선택·예측·지표·통계에 쓰지 않는다(예외: 인덱스 생성 — CLAUDE.md 참조). 모델 선택은 val 로만.
 - split 은 환자 단위, seed 2026. `data/splits.json` 의 sha256 이 `0f923acd2f8898d58c4c62cb598c4b8d88c17ab5eaab8a72ee4e73a7342d8f43` 와 다르면 데이터가 달라진 것이니 A3 에 알린다.
 - 보고서에는 실행해 확인한 수치만 쓴다.
 

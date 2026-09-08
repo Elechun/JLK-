@@ -98,3 +98,29 @@ def test_split_file_hash_is_recorded_for_reproducibility():
     """The file itself must be byte-stable; make_splits.py writes it deterministically."""
     h = hashlib.sha256((ROOT / "data/splits.json").read_bytes()).hexdigest()
     assert len(h) == 64
+
+
+def test_a2_volumes_cli_does_not_read_test_by_default():
+    """A5a item 2 / A5b: this script re-read all 1,451 acute masks after the split existed. It now filters
+    on data/splits.json and needs --include-test to touch the held-out subjects."""
+    src = (ROOT / "scripts/analysis/a2_volumes.py").read_text()
+    assert "--include-test" in src and 'sp["train"]' in src and 'sp["val"]' in src
+
+
+def test_only_the_index_builder_scans_every_raw_mask():
+    """The subject index (`strokeai.data.index.build_index`) must read every acute mask once: the stratified
+    patient-level split needs the lesion-volume band and the eligibility flags, so there is no way to build
+    `data/splits.json` without it. That is the ONE sanctioned whole-cohort read (charter, known limit 1).
+    Every other script that loads mask voxels must go through data/splits.json.  This test walks the
+    scripts and fails when a new whole-cohort mask reader appears outside the allow-list."""
+    allow = {"scripts/build_index.py", "scripts/download_soop.py"}
+    offenders = []
+    for path in sorted((ROOT / "scripts").rglob("*.py")):
+        rel = path.relative_to(ROOT).as_posix()
+        src = path.read_text()
+        reads_masks = "lesionAcute_mask" in src or "lesion_masks" in src
+        scans_all = re.search(r'glob\(\s*["\']sub-\*["\']\s*\)', src) is not None
+        uses_split = "splits.json" in src or 'sp["train"]' in src or "--which" in src
+        if reads_masks and scans_all and not uses_split and rel not in allow:
+            offenders.append(rel)
+    assert not offenders, f"whole-cohort mask readers without a split filter: {offenders}"

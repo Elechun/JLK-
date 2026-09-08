@@ -38,7 +38,8 @@ def load_probs(run: Path, cache_dir: Path, ids: list[str], ckpt: str, cache_npz:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     cache = SubjectCache(cache_dir, ids)
-    probs = {sid: predict_subject(model, cache.img[sid], device=device, channels=channels).astype(np.float16) for sid in ids}
+    # fp32, not float16: a float16 round trip rounds e.g. 0.49999 up to 0.5 and flips the 0.5 decision (A5a item 15)
+    probs = {sid: predict_subject(model, cache.img[sid], device=device, channels=channels).astype(np.float32) for sid in ids}
     meta = {sid: {"gt_ml": volume_ml(cache.mask[sid] > 0, cache.meta[sid]["voxel_volume_mm3"]),
                   "vv": float(cache.meta[sid]["voxel_volume_mm3"])} for sid in ids}
     gts = {sid: (cache.mask[sid] > 0) for sid in ids}

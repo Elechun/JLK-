@@ -1,0 +1,81 @@
+{
+ "synthetic": {
+  "cache_mask_shape": [
+   6,
+   32,
+   32
+  ],
+  "lesion_H_range": [
+   3,
+   7
+  ],
+  "H": 32,
+  "lesion_W_range": [
+   13,
+   18
+  ],
+  "W": 32,
+  "lesion_on_low_H_side": true,
+  "lesion_on_low_W_side": false,
+  "laterality_left_frac_reported": 0.5,
+  "expected_if_left_right_is_H": 1.0
+ },
+ "real_train_val": {
+  "axis_codes": {
+   "sub-1": {
+    "raw": "LAS",
+    "canonical": "RAS"
+   },
+   "sub-2": {
+    "raw": "LAS",
+    "canonical": "RAS"
+   },
+   "sub-3": {
+    "raw": "LAS",
+    "canonical": "RAS"
+   },
+   "sub-4": {
+    "raw": "LAS",
+    "canonical": "RAS"
+   },
+   "sub-5": {
+    "raw": "LAS",
+    "canonical": "RAS"
+   }
+  },
+  "low_H_fraction": {
+   "n": 1233,
+   "frac_within_0.05_of_0_or_1": 0.797242497972425,
+   "frac_between_0.2_0.8": 0.10218978102189781,
+   "hist_10bins": [
+    504,
+    36,
+    22,
+    24,
+    21,
+    22,
+    17,
+    20,
+    45,
+    522
+   ]
+  },
+  "low_W_fraction": {
+   "n": 1233,
+   "frac_within_0.05_of_0_or_1": 0.5044606650446066,
+   "frac_between_0.2_0.8": 0.3122465531224655,
+   "hist_10bins": [
+    70,
+    35,
+    40,
+    48,
+    62,
+    78,
+    72,
+    86,
+    101,
+    641
+   ]
+  }
+ }
+}

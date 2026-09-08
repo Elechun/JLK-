@@ -3,7 +3,12 @@
 
 Reads every derivatives/lesion_masks/<sub>/dwi/<sub>_space-TRACE_desc-lesionAcute_mask.nii.gz,
 counts voxels > 0, and multiplies by the voxel volume taken from the *mask* header (index.csv uses
-the TRACE header, so this is a genuinely independent path). Writes a CSV; never touches data/raw.
+the TRACE header, so this is a genuinely independent path). Writes a CSV.
+
+A5b 2026-09-09 (A5a item 2): the first version of this script had NO split filter and was run on
+2026-09-09 02:55 KST, after data/splits.json existed, so it re-read the acute masks of all 1,451 subjects
+including the 218 held-out ones (volumes only; nothing was trained, selected or scored on them).  It now
+reads the train+val subjects of data/splits.json by default; `--include-test` is required to read test.
 
 Usage:
     PYTHONPATH=src .venv/bin/python scripts/analysis/a2_volumes.py --out /tmp/.../a2_volumes.csv
@@ -23,11 +28,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw", type=Path, default=Path("data/raw/ds004889"))
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--splits", type=Path, default=Path("data/splits.json"))
+    ap.add_argument("--include-test", action="store_true",
+                    help="also read the held-out test masks (only at the final evaluation step, CLAUDE.md)")
     a = ap.parse_args()
 
+    import json
+
+    sp = json.loads(a.splits.read_text())
+    allowed = set(sp["train"]) | set(sp["val"]) | (set(sp["test"]) if a.include_test else set())
     mroot = a.raw / "derivatives" / "lesion_masks"
     rows = []
-    subs = sorted([p for p in mroot.glob("sub-*") if p.is_dir()], key=lambda p: int(p.name[4:]))
+    subs = sorted([p for p in mroot.glob("sub-*") if p.is_dir() and p.name in allowed], key=lambda p: int(p.name[4:]))
     for sub in subs:
         sid = sub.name
         p = sub / "dwi" / f"{sid}_space-TRACE_desc-lesionAcute_mask.nii.gz"

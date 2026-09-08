@@ -1,0 +1,55 @@
+{
+ "note": "cohort sizes are the dev-proportion ESTIMATE (A6); test labels were not read",
+ "rule": "PASS = point > 0.55 and bootstrap CI lower > 0.50; INCONCLUSIVE = point > 0.55 but CI lower <= 0.50; FAIL = point <= 0.55",
+ "scenarios": {
+  "dev_estimate_0.655": {
+   "true_auc": 0.655,
+   "n_pos": 35,
+   "n_neg": 22,
+   "n_sim": 300,
+   "n_boot": 2000,
+   "p_point_gt_thr": 0.9433333333333334,
+   "PASS": 0.54,
+   "INCONCLUSIVE": 0.4033333333333333,
+   "FAIL": 0.056666666666666664
+  },
+  "null_0.5": {
+   "true_auc": 0.5,
+   "n_pos": 35,
+   "n_neg": 22,
+   "n_sim": 300,
+   "n_boot": 2000,
+   "p_point_gt_thr": 0.2633333333333333,
+   "PASS": 0.016666666666666666,
+   "INCONCLUSIVE": 0.24666666666666667,
+   "FAIL": 0.7366666666666667
+  },
+  "0.60": {
+   "true_auc": 0.6,
+   "n_pos": 35,
+   "n_neg": 22,
+   "n_sim": 300,
+   "n_boot": 2000,
+   "p_point_gt_thr": 0.7533333333333333,
+   "PASS": 0.25666666666666665,
+   "INCONCLUSIVE": 0.49666666666666665,
+   "FAIL": 0.24666666666666667
+  },
+  "0.70": {
+   "true_auc": 0.7,
+   "n_pos": 35,
+   "n_neg": 22,
+   "n_sim": 300,
+   "n_boot": 2000,
+   "p_point_gt_thr": 0.99,
+   "PASS": 0.76,
+   "INCONCLUSIVE": 0.23,
+   "FAIL": 0.01
+  }
+ },
+ "normal_approx_point_gate": {
+  "se_hanley_mcneil": 0.0727463510253316,
+  "p_point_gt_0.55_at_0.655": 0.9255420570036226,
+  "p_pass_if_ci_is_pm_1.96se": 0.5677666548280247
+ }
+}

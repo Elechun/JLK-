@@ -17,7 +17,12 @@ Feature sets reported side by side (A6 2026-09-09, charter s."etiology"):
 Secondary criteria, all on the same CV folds:
   LAA-vs-CE AUC   : discrimination between the two large-lesion etiologies, where the size shortcut is
                     weakest; scored as p(LAA) - p(CE) on the subjects whose true label is LAA or CE
-  no_svo_3class   : macro OvR AUC after dropping SVO entirely (SVO is defined by size <1.5 cm)
+  no_svo_3class   : macro OvR AUC of a classifier RE-FITTED on the SVO-free subset (SVO is defined by size <1.5 cm)
+All AUCs are pooled out-of-fold AUCs (per-fold values are stored next to them); every AUC, per-class AUC and
+delta carries a 95 % subject-bootstrap CI (n_boot 2000, seed = --seed, resamples lacking a class dropped).
+The dev CV is a *classifier-stage* CV: with --mask pred the upstream segmentation model was trained on the
+GT masks of the seg-train subjects, so `cv_by_seg_split` reports the AUC on seg-train vs seg-val subjects
+separately (A5b 2026-09-09).
 Cryptogenic is excluded by default (Astra review). Model selection uses stratified 5-fold CV on train+val subjects only; `--final` fits on train+val and scores test ONCE.
 """
 import argparse
@@ -91,10 +96,12 @@ def evaluate(df: pd.DataFrame, feats: list[str], kind: str, seed: int, test_df: 
              return_oof: bool = False):
     X, y = df[feats].values.astype(float), df["y"].values
     model = make_model(kind, seed)
+    folds = None
     if test_df is None:
         cv = StratifiedKFold(5, shuffle=True, random_state=seed)
         proba = cross_val_predict(model, X, y, cv=cv, method="predict_proba")
         classes = sorted(set(y))
+        folds = [te for _, te in cv.split(X, y)]
     else:
         model.fit(X, y)
         proba = model.predict_proba(test_df[feats].values.astype(float))
@@ -111,6 +118,16 @@ def evaluate(df: pd.DataFrame, feats: list[str], kind: str, seed: int, test_df: 
            "laa_vs_ce_auc": laa_vs_ce_auc(y, p, present),
            "balanced_accuracy": float(balanced_accuracy_score(y, pred)),
            "confusion": confusion_matrix(y, pred, labels=present).tolist()}
+    if folds is not None:
+        # A5a item 8 / A5b: the headline number is a *pooled* out-of-fold AUC (scores from five different
+        # fits are ranked against each other).  Report the per-fold AUCs and their mean next to it.
+        fm = [multiclass_auc(y[te], p[te], present)["macro_auc_ovr"] for te in folds]
+        fl = [laa_vs_ce_auc(y[te], p[te], present) for te in folds]
+        res["auc_aggregation"] = "pooled_oof"
+        res["fold_macro_auc_ovr"] = [float(v) for v in fm]
+        res["fold_mean_macro_auc_ovr"] = float(np.nanmean(fm))
+        res["fold_laa_vs_ce_auc"] = [float(v) for v in fl]
+        res["fold_mean_laa_vs_ce_auc"] = float(np.nanmean(fl))
     return (res, y, p, present) if return_oof else res
 
 
@@ -123,17 +140,32 @@ def bootstrap_deltas(oof: dict, pairs: list[tuple[str, str]], n_boot: int = 2000
     """
     rng = np.random.default_rng(seed)
     names = list(oof)
-    y0 = oof[names[0]][0]
+    y0, _, present0 = oof[names[0]]
     n = len(y0)
-    idx = [rng.integers(0, n, n) for _ in range(n_boot)]
+    # A5a item 9 / A5b: a resample that loses a class entirely would silently be scored as a reduced-class
+    # macro AUC (`multiclass_auc` nan-means over the classes present).  Rule fixed before test: such
+    # resamples are DROPPED and the effective number of resamples is reported.
+    idx, n_dropped = [], 0
+    while len(idx) < n_boot:
+        i = rng.integers(0, n, n)
+        if all((y0[i] == c).any() and (~(y0[i] == c)).any() for c in present0):
+            idx.append(i)
+        else:
+            n_dropped += 1
     macro = {k: [] for k in names}
     lce = {k: [] for k in names}
+    perc = {k: {c: [] for c in oof[k][2]} for k in names}
     for i in idx:
         for k in names:
             y, p, present = oof[k]
-            macro[k].append(multiclass_auc(y[i], p[i], present)["macro_auc_ovr"])
+            a = multiclass_auc(y[i], p[i], present)
+            macro[k].append(a["macro_auc_ovr"])
+            for c in present:
+                perc[k][c].append(a["per_class_auc"][c])
             lce[k].append(laa_vs_ce_auc(y[i], p[i], present))
-    out = {"n_boot": n_boot, "per_set": {}, "deltas": {}}
+    out = {"n_boot": n_boot, "n_boot_effective": len(idx), "n_resamples_dropped_missing_class": n_dropped,
+           "resampling": "iid subject resample; resamples lacking any class are dropped", "seed": seed,
+           "per_set": {}, "deltas": {}}
     for k in names:
         y, p, present = oof[k]
         out["per_set"][k] = {
@@ -141,6 +173,8 @@ def bootstrap_deltas(oof: dict, pairs: list[tuple[str, str]], n_boot: int = 2000
             "macro_ci95": [float(np.nanpercentile(macro[k], 2.5)), float(np.nanpercentile(macro[k], 97.5))],
             "laa_vs_ce_auc": laa_vs_ce_auc(y, p, present),
             "laa_vs_ce_ci95": [float(np.nanpercentile(lce[k], 2.5)), float(np.nanpercentile(lce[k], 97.5))],
+            "per_class_ci95": {c: [float(np.nanpercentile(v, 2.5)), float(np.nanpercentile(v, 97.5))]
+                               for c, v in perc[k].items()},
         }
     for a_, b_ in pairs:
         if a_ not in oof or b_ not in oof:
@@ -193,11 +227,41 @@ def main():
         print(name, json.dumps({k: res["cv"][name][k] for k in ["macro_auc_ovr", "laa_vs_ce_auc", "balanced_accuracy", "per_class_auc"]}))
     res["cv_bootstrap"] = bootstrap_deltas(oof, pairs, seed=a.seed)
 
+    # A5a item 4 / A5b 2026-09-09: the predicted masks of the segmentation-TRAIN subjects come from a model
+    # that was fitted on their GT masks, so their features are cleaner than a deployment would see
+    # (A5b measured Dice 0.758 vs 0.706 and log-volume MAE 0.20 vs 0.33 on the seg-train vs seg-val part
+    # of this cohort).  The dev CV is therefore a *classifier-stage* CV, not a full-pipeline OOF estimate.
+    # Report the pooled-OOF AUC separately on the two parts so the optimism is visible; for --mask gt the
+    # same split is a control (no upstream model involved).
+    seg_val = set(sp["val"])
+    res["cv_by_seg_split"] = {}
+    for name in sets:
+        y_, p_, cl_ = oof[name]
+        is_val = dev["participant_id"].isin(seg_val).to_numpy()
+        res["cv_by_seg_split"][name] = {}
+        for part, m in [("seg_train", ~is_val), ("seg_val", is_val)]:
+            res["cv_by_seg_split"][name][part] = {"n": int(m.sum()),
+                                                  "macro_auc_ovr": multiclass_auc(y_[m], p_[m], cl_)["macro_auc_ovr"],
+                                                  "laa_vs_ce_auc": laa_vs_ce_auc(y_[m], p_[m], cl_)}
+    print("full OOF AUC by seg split:", json.dumps(res["cv_by_seg_split"]["full"]))
+
     # SVO is *defined* by lesion size (<1.5 cm), so a macro AUC that drops it shows what is left
-    # once the label-definition shortcut is gone (A2 F3).
+    # once the label-definition shortcut is gone (A2 F3).  NOTE (A5a item 6): this re-FITS a 3-class
+    # classifier on the SVO-free subset; it is not the 4-class model scored on three classes.
     dev3 = dev[dev["y"] != "SVO"].reset_index(drop=True)
-    res["cv_no_svo_3class"] = {name: evaluate(dev3, feats, a.model, a.seed) for name, feats in sets.items()}
+    res["cv_no_svo_3class"] = {}
+    oof3 = {}
+    for name, feats in sets.items():
+        res["cv_no_svo_3class"][name], y_, p_, cl_ = evaluate(dev3, feats, a.model, a.seed, return_oof=True)
+        oof3[name] = (y_, p_, cl_)
+    res["cv_no_svo_3class_bootstrap"] = bootstrap_deltas(oof3, pairs, seed=a.seed)
     print("no-SVO 3-class macro:", json.dumps({k: round(v["macro_auc_ovr"], 4) for k, v in res["cv_no_svo_3class"].items()}))
+    # auditable sidecar: subject ids, labels and OOF probabilities of every set (charter E4)
+    res["oof_sidecar"] = str((a.out or Path("results") / f"cls_{a.mask}_{a.model}{'_final' if a.final else ''}.json").with_suffix(".oof.json"))
+    sidecar = {"dev_ids": dev["participant_id"].tolist(), "seed": a.seed,
+               "cv4": {k: {"y": v[0].tolist(), "classes": v[2], "proba": np.asarray(v[1]).round(6).tolist()} for k, v in oof.items()},
+               "cv3_ids": dev3["participant_id"].tolist(),
+               "cv3": {k: {"y": v[0].tolist(), "classes": v[2], "proba": np.asarray(v[1]).round(6).tolist()} for k, v in oof3.items()}}
 
     if a.final:
         test = build_table(index, sp["test"], a.cache, a.mask, a.pred_dir, a.include_cryptogenic)
@@ -208,13 +272,23 @@ def main():
             toof[name] = (y_, p_, cl_)
         res["test_bootstrap"] = bootstrap_deltas(toof, pairs, seed=a.seed)
         test3 = test[test["y"] != "SVO"].reset_index(drop=True)
-        res["test_no_svo_3class"] = {name: evaluate(dev3, feats, a.model, a.seed, test_df=test3) for name, feats in sets.items()}
+        res["test_no_svo_3class"] = {}
+        toof3 = {}
+        for name, feats in sets.items():
+            res["test_no_svo_3class"][name], y_, p_, cl_ = evaluate(dev3, feats, a.model, a.seed, test_df=test3, return_oof=True)
+            toof3[name] = (y_, p_, cl_)
+        res["test_no_svo_3class_bootstrap"] = bootstrap_deltas(toof3, pairs, seed=a.seed)
+        sidecar["test_ids"] = test["participant_id"].tolist()
+        sidecar["test4"] = {k: {"y": v[0].tolist(), "classes": v[2], "proba": np.asarray(v[1]).round(6).tolist()} for k, v in toof.items()}
+        sidecar["test3_ids"] = test3["participant_id"].tolist()
+        sidecar["test3"] = {k: {"y": v[0].tolist(), "classes": v[2], "proba": np.asarray(v[1]).round(6).tolist()} for k, v in toof3.items()}
         print("TEST macro", json.dumps({k: round(v["macro_auc_ovr"], 4) for k, v in res["test"].items()}))
         print("TEST LAAvsCE", json.dumps({k: round(v["laa_vs_ce_auc"], 4) for k, v in res["test"].items()}))
     out = a.out or Path("results") / f"cls_{a.mask}_{a.model}{'_final' if a.final else ''}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     json.dump(res, open(out, "w"), indent=1)
-    print("wrote", out)
+    json.dump(sidecar, open(out.with_suffix(".oof.json"), "w"))
+    print("wrote", out, "and", out.with_suffix(".oof.json"))
 
 
 if __name__ == "__main__":

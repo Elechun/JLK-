@@ -1,3 +1,13 @@
+"""Slice dataset over the preprocessed cache.
+
+Cache layout (A5b 2026-09-09, verified against `preprocess_subject` + `nib.as_closest_canonical`):
+  img  : (S, C, H, W)   mask : (S, H, W)
+  S = canonical axis 2 (I -> S), H = canonical axis 0 (patient Left -> Right, RAS x),
+  W = canonical axis 1 (Posterior -> Anterior, RAS y).
+So in a (C, H, W) sample the LEFT-RIGHT axis is H (index 1) and the A-P axis is W (index 2).
+The historical augmentation flipped W, i.e. it was an anterior-posterior mirror, not the
+left-right mirror its comment claimed. `flip_axis` makes the choice explicit and configurable.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,6 +15,11 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+
+# axis of a (C, H, W) slice sample
+LR_AXIS = 1  # H : patient left -> right (RAS x)
+AP_AXIS = 2  # W : posterior -> anterior (RAS y)
+FLIP_AXES = {"lr": (LR_AXIS,), "ap": (AP_AXIS,), "both": (LR_AXIS, AP_AXIS), "none": ()}
 
 
 class SubjectCache:
@@ -31,11 +46,17 @@ class SliceDataset(Dataset):
     """2-D slices with optional positive/negative balancing (resampled every epoch via `resample`)."""
 
     def __init__(self, cache: SubjectCache, neg_pos_ratio: float | None = 1.0, augment: bool = False, seed: int = 0,
-                 channels: list[int] | None = None):
+                 channels: list[int] | None = None, flip_axis: str = "lr"):
         self.cache = cache
         self.table = cache.slice_table()
         self.neg_pos_ratio = neg_pos_ratio
         self.augment = augment
+        # Mirror augmentation: "lr" = anatomical left-right (the intended one), "ap" = anterior-posterior
+        # (what runs/seg_unet2d was actually trained with), "both", or "none".  Each axis is flipped
+        # independently with p = 0.5.
+        if flip_axis not in FLIP_AXES:
+            raise ValueError(f"flip_axis must be one of {sorted(FLIP_AXES)}, got {flip_axis!r}")
+        self.flip_axis = flip_axis
         # `channels` selects a subset of the cached input channels (0 = TRACE, 1 = ADC).  None = both.
         # Used for the ADC ablation (A4); the cache itself is never re-written.
         self.channels = list(channels) if channels is not None else None
@@ -70,9 +91,10 @@ class SliceDataset(Dataset):
             # DataLoader `num_workers` (a single self.rng would be *forked* into every worker, so each
             # worker would replay the same augmentation stream and the result would depend on worker count).
             rng = np.random.default_rng((self.seed, self.epoch, i))
-            if rng.random() < 0.5:  # left-right flip (axis W)
-                x = x[:, :, ::-1]
-                y = y[:, :, ::-1]
+            for ax in FLIP_AXES[self.flip_axis]:
+                if rng.random() < 0.5:
+                    x = np.flip(x, axis=ax)
+                    y = np.flip(y, axis=ax)
             scale = rng.uniform(0.9, 1.1, size=(x.shape[0], 1, 1)).astype(np.float32)
             shift = rng.uniform(-0.1, 0.1, size=(x.shape[0], 1, 1)).astype(np.float32)
             x = x * scale + shift

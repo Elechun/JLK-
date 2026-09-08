@@ -1,0 +1,49 @@
+{
+ "icc": {
+  "max_abs_diff_20_random_trials": 9.992007221626409e-16,
+  "val_icc_metrics": 0.913842139837184,
+  "val_icc_reference": 0.9138421398371842
+ },
+ "optimism": {
+  "seg_train": {
+   "n": 367,
+   "dice_mean": 0.7577760699756038,
+   "dice_median": 0.8387096774193549,
+   "rho_logvol_gt_pred": 0.9567105578440546,
+   "mae_logvol": 0.2012213332438411,
+   "mae_laterality": 0.04768838880024271
+  },
+  "seg_val": {
+   "n": 80,
+   "dice_mean": 0.7062097567851936,
+   "dice_median": 0.7948563930745693,
+   "rho_logvol_gt_pred": 0.8905063291139242,
+   "mae_logvol": 0.33191286686472254,
+   "mae_laterality": 0.0610531019249418
+  }
+ },
+ "centroid_z_rho_logvol": {
+  "gt": 0.17217695261252175,
+  "pred": 0.2635896331754314
+ },
+ "detection_val": {
+  "n": 218,
+  "dice_zero": 15,
+  "dice_zero_but_pred_nonempty": 9,
+  "pred_empty": 6,
+  "overlap_hits": 203
+ },
+ "flags": {
+  "acute_eq_chronic": 3,
+  "acute_subset_chronic": 5,
+  "union": 5,
+  "eq_is_subset_of_subset": true,
+  "ids": [
+   "sub-1095",
+   "sub-1132",
+   "sub-1720",
+   "sub-1737",
+   "sub-235"
+  ]
+ }
+}

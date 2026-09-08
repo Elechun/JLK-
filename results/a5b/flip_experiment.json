@@ -1,0 +1,114 @@
+{
+ "a5b_flip_ap_s2026": {
+  "flip_axis": "ap",
+  "seed": 2026,
+  "epochs": 40,
+  "best_epoch": 33,
+  "val_dice_best": 0.6847418811650405,
+  "val_dice_last5_mean": 0.681081050977723,
+  "val_sens": 0.9724770642201835,
+  "val_icc": 0.9136990208197195,
+  "val_icc_ci": [
+   0.7932211177170517,
+   0.9898416131254216
+  ],
+  "small_dice": 0.5378399749456978,
+  "small_detect": 0.95
+ },
+ "a5b_flip_lr_s2026": {
+  "flip_axis": "lr",
+  "seed": 2026,
+  "epochs": 40,
+  "best_epoch": 39,
+  "val_dice_best": 0.6936390793651883,
+  "val_dice_last5_mean": 0.690733140646674,
+  "val_sens": 0.9724770642201835,
+  "val_icc": 0.8499645514521186,
+  "val_icc_ci": [
+   0.5982323557555791,
+   0.9914378794689037
+  ],
+  "small_dice": 0.5584683947875743,
+  "small_detect": 0.9333333333333333
+ },
+ "a5b_flip_none_s2026": {
+  "flip_axis": "none",
+  "seed": 2026,
+  "epochs": 40,
+  "best_epoch": 30,
+  "val_dice_best": 0.6930458633052907,
+  "val_dice_last5_mean": 0.6911875712479018,
+  "val_sens": 0.981651376146789,
+  "val_icc": 0.8239213716312832,
+  "val_icc_ci": [
+   0.5234570932219755,
+   0.9907936534237185
+  ],
+  "small_dice": 0.5621083161752468,
+  "small_detect": 0.95
+ },
+ "a5b_flip_ap_s7": {
+  "flip_axis": "ap",
+  "seed": 7,
+  "epochs": 40,
+  "best_epoch": 29,
+  "val_dice_best": 0.6779470322052773,
+  "val_dice_last5_mean": 0.6721769922205112,
+  "val_sens": 0.9587155963302753,
+  "val_icc": 0.8483120164474801,
+  "val_icc_ci": [
+   0.5976721412527464,
+   0.9897025980651329
+  ],
+  "small_dice": 0.5377586828320137,
+  "small_detect": 0.9
+ },
+ "a5b_flip_lr_s7": {
+  "flip_axis": "lr",
+  "seed": 7,
+  "epochs": 40,
+  "best_epoch": 29,
+  "val_dice_best": 0.689141928172871,
+  "val_dice_last5_mean": 0.6866181052801968,
+  "val_sens": 0.963302752293578,
+  "val_icc": 0.841658570373103,
+  "val_icc_ci": [
+   0.5743910675172835,
+   0.9907717665959928
+  ],
+  "small_dice": 0.556796797964373,
+  "small_detect": 0.9166666666666666
+ },
+ "a5b_flip_ap_s77": {
+  "flip_axis": "ap",
+  "seed": 77,
+  "epochs": 40,
+  "best_epoch": 30,
+  "val_dice_best": 0.6824913007986231,
+  "val_dice_last5_mean": 0.6809641660112273,
+  "val_sens": 0.9587155963302753,
+  "val_icc": 0.8389696899112233,
+  "val_icc_ci": [
+   0.5668102359298799,
+   0.9893225750723221
+  ],
+  "small_dice": 0.5658700338981617,
+  "small_detect": 0.9166666666666666
+ },
+ "a5b_flip_lr_s77": {
+  "flip_axis": "lr",
+  "seed": 77,
+  "epochs": 40,
+  "best_epoch": 33,
+  "val_dice_best": 0.6900537610913079,
+  "val_dice_last5_mean": 0.6867663032735745,
+  "val_sens": 0.963302752293578,
+  "val_icc": 0.8852500086916577,
+  "val_icc_ci": [
+   0.7047711705093751,
+   0.9909841148193622
+  ],
+  "small_dice": 0.5448243451656272,
+  "small_detect": 0.9
+ }
+}

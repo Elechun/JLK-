@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from .data.dataset import SliceDataset, SubjectCache
+from .data.dataset import FLIP_AXES, SliceDataset, SubjectCache
 from .losses import bce_dice_loss
 from .metrics import dice_binary, segmentation_summary, volume_ml
 from .models import UNet2D
@@ -35,9 +35,15 @@ def amp_context(amp: str | None, device: str):
 
 @torch.no_grad()
 def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, device="cpu", tta_flip: bool = False,
-                    channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False) -> np.ndarray:
-    """img: (S, C, H, W) float16 -> prob (S, H, W) float32."""
+                    channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False,
+                    flip_axis: str = "lr") -> np.ndarray:
+    """img: (S, C, H, W) float16 -> prob (S, H, W) float32.
+
+    `tta_flip` averages with the mirrored input; the mirror axis follows `flip_axis` (same convention as
+    `SliceDataset`: "lr" = H axis = tensor dim 2, "ap" = W axis = dim 3).  Not used by the shipped config.
+    """
     model.eval()
+    tta_dims = [ax + 1 for ax in FLIP_AXES[flip_axis]]  # (C,H,W) axis -> (B,C,H,W) dim
     out = []
     for i in range(0, len(img), batch):
         arr = img[i:i + batch].astype(np.float32)
@@ -48,8 +54,8 @@ def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, de
             x = x.contiguous(memory_format=torch.channels_last)
         with amp_context(amp, device):
             p = torch.sigmoid(model(x).float())
-            if tta_flip:
-                p = 0.5 * (p + torch.flip(model(torch.flip(x, dims=[3])).float().sigmoid(), dims=[3]))
+            if tta_flip and tta_dims:
+                p = 0.5 * (p + torch.flip(model(torch.flip(x, dims=tta_dims)).float().sigmoid(), dims=tta_dims))
         out.append(p[:, 0].float().cpu().numpy())
     return np.concatenate(out, axis=0)
 
@@ -66,7 +72,7 @@ def evaluate_subjects(model, cache: SubjectCache, threshold: float = 0.5, device
         gt = cache.mask[sid] > 0
         vv = cache.meta[sid]["voxel_volume_mm3"]
         per.append({"sid": sid, "dice": dice_binary(pred, gt), "gt_ml": volume_ml(gt, vv), "pred_ml": volume_ml(pred, vv),
-                    "gt_pos": bool(gt.any()), "pred_pos": bool(pred.any())})
+                    "gt_pos": bool(gt.any()), "pred_pos": bool(pred.any()), "overlap_pos": bool((pred & gt).any())})
     return segmentation_summary(per), per
 
 
@@ -99,8 +105,10 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
     assert cached_size == int(cfg.get("size", cached_size)), (
         f"cache at {cache_dir} is {cached_size}^2 but the config asks for {cfg.get('size')}^2 -- "
         f"re-run scripts/preprocess.py (it reads size/clip from the same config)")
+    # `flip_axis` (A5b): "lr" = anatomical left-right mirror.  runs/seg_unet2d was trained before the key
+    # existed, with the W-axis flip = "ap"; reproduce it with `flip_axis: ap` in the config.
     ds = SliceDataset(train_cache, neg_pos_ratio=cfg["neg_pos_ratio"], augment=cfg["augment"], seed=cfg["seed"],
-                      channels=channels)
+                      channels=channels, flip_axis=cfg.get("flip_axis", "lr"))
     g = torch.Generator().manual_seed(cfg["seed"])
     # NOTE: persistent_workers must stay False -- `ds.resample()` runs in the parent between epochs and
     # persistent workers would keep serving the *first* epoch's item list.
@@ -120,7 +128,7 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
     log.log(event="start", n_params=n_params, n_train_subjects=len(train_cache.ids), n_val_subjects=len(val_cache.ids),
             n_train_slices_per_epoch=len(ds), steps_per_epoch=steps_per_epoch, total_steps=total, in_channels=in_ch,
             amp=amp or "fp32", channels_last=ch_last, num_workers=num_workers, pin_memory=pin,
-            cudnn_benchmark=bool(torch.backends.cudnn.benchmark), device=str(device))
+            cudnn_benchmark=bool(torch.backends.cudnn.benchmark), device=str(device), flip_axis=ds.flip_axis)
 
     best = {"val_dice": -1.0, "epoch": -1}
     step = 0

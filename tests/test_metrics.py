@@ -124,3 +124,30 @@ def test_laa_vs_ce_auc_is_conditional_on_those_two_classes():
     assert laa_vs_ce_auc(y, proba[:, [1, 0, 2, 3]], classes) == pytest.approx(0.0)
     # missing class -> NaN, never a silent 0.5
     assert np.isnan(laa_vs_ce_auc(np.array(["SVO", "Others"]), proba[:2], classes))
+
+
+def test_dice_rejects_shape_mismatch_and_sensitivity_is_nan_without_positives():
+    """A5a item 16 / A5b: broadcasting made dice_binary((1,3), (3,1)) return 3.0; and a cohort without a
+    single GT-positive subject must report sensitivity NaN, not 0."""
+    with pytest.raises(ValueError):
+        dice_binary(np.ones((1, 3), bool), np.ones((3, 1), bool))
+    per = [{"dice": float("nan"), "gt_ml": 0, "pred_ml": 0, "gt_pos": False, "pred_pos": False}]
+    s = segmentation_summary(per, seed=0)
+    assert np.isnan(s["detection_sensitivity"])
+
+
+def test_overlap_sensitivity_is_stricter_than_nonempty_output():
+    """A5a item 13 / A5b: `detection_sensitivity` counts any non-empty prediction; the overlap variant
+    requires the prediction to touch the lesion. Dice = 0 with a non-empty prediction separates them."""
+    per = [
+        {"dice": 0.8, "gt_ml": 5, "pred_ml": 5, "gt_pos": True, "pred_pos": True, "overlap_pos": True},
+        {"dice": 0.0, "gt_ml": 3, "pred_ml": 1, "gt_pos": True, "pred_pos": True, "overlap_pos": False},
+        {"dice": 0.0, "gt_ml": 2, "pred_ml": 0, "gt_pos": True, "pred_pos": False, "overlap_pos": False},
+    ]
+    s = segmentation_summary(per, seed=0)
+    assert s["detection_sensitivity"] == pytest.approx(2 / 3)
+    assert s["detection_sensitivity_overlap"] == pytest.approx(1 / 3)
+    assert s["n_pred_nonempty_but_no_overlap"] == 1
+    # without the optional key the summary stays backward compatible
+    s2 = segmentation_summary([{k: v for k, v in d.items() if k != "overlap_pos"} for d in per], seed=0)
+    assert "detection_sensitivity_overlap" not in s2

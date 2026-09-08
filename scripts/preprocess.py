@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Preprocess every subject in data/splits.json into data/cache/<sid>.npz (parallel, idempotent)."""
+"""Preprocess subjects listed in data/splits.json into data/cache/<sid>.npz (parallel, idempotent).
+
+By default only `train` and `val` are preprocessed: CLAUDE.md forbids *any* script from reading the
+test split before the single final evaluation. Pass `--which test` (or `--which train val test`) at
+that point to materialise the test cache.
+"""
 import argparse
 import concurrent.futures as cf
 import json
@@ -35,10 +40,12 @@ def main():
     ap.add_argument("--out", type=Path, default=Path("data/cache"))
     ap.add_argument("--size", type=int, default=128)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--which", nargs="+", default=["train", "val"], choices=["train", "val", "test"],
+                    help="splits to preprocess; 'test' only at the final evaluation step (CLAUDE.md)")
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     sp = json.load(open(a.splits))
-    ids = sp["train"] + sp["val"] + sp["test"]
+    ids = [s for w in a.which for s in sp[w]]
     errs = []
     with cf.ProcessPoolExecutor(a.workers) as ex:
         for i, (sid, st) in enumerate(ex.map(one, [(s, a.raw, a.out, a.size) for s in ids], chunksize=8)):
@@ -46,7 +53,11 @@ def main():
                 errs.append((sid, st))
             if (i + 1) % 200 == 0:
                 print(f"[{i+1}/{len(ids)}] errors={len(errs)}", flush=True)
-    json.dump({"size": a.size, "n": len(ids), "errors": errs}, open(a.out / "_manifest.json", "w"), indent=1)
+    manifest_p = a.out / "_manifest.json"
+    prev = json.load(open(manifest_p)) if manifest_p.exists() else {}
+    done = sorted(set(prev.get("which", [])) | set(a.which))
+    json.dump({"size": a.size, "which": done, "n": len(ids), "n_total_cached": len(list(a.out.glob("sub-*.npz"))),
+               "errors": errs}, open(manifest_p, "w"), indent=1)
     print("done, errors:", errs[:10], len(errs))
 
 

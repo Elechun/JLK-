@@ -57,12 +57,32 @@ def robust_stats(v: np.ndarray) -> tuple[float, float, bool]:
     return med, scale, True
 
 
-def robust_zscore(x: np.ndarray, fg: np.ndarray, clip: float = 6.0) -> np.ndarray:
+def robust_zscore(x: np.ndarray, fg: np.ndarray, clip: float = 6.0, clip_mode: str = "mad") -> np.ndarray:
+    """Robust z-score of `x` using the statistics of the foreground `fg`, then clipped.
+
+    clip_mode
+      "mad"  -- clip at +-`clip` robust standard deviations (fixed for every subject).
+      "pct"  -- clip at the subject's own foreground percentiles (`clip` = the upper tail in %,
+                e.g. clip=0.1 -> [p0.1, p99.9]), capped at +-40 so float16 storage stays exact.
+
+    A4 measured (150 train subjects, unclipped z): the acute lesion median on TRACE sits at z = +6.2, so
+    the historical clip of +-6 saturates ~51 % of all lesion voxels, while only 1.9 % of non-lesion brain
+    exceeds +6.  See docs/agents/A4_report.md for the clip sweep that fixed the value.
+    """
     v = x[fg]
     if v.size < 100:  # degenerate volume
         v = x.ravel()
     med, scale, _ = robust_stats(v)
-    return np.clip((x - med) / (scale + 1e-6), -clip, clip).astype(np.float32)
+    z = (x - med) / (scale + 1e-6)
+    if clip_mode == "pct":
+        zf = z[fg] if v.size >= 100 else z.ravel()
+        lo = float(np.clip(np.percentile(zf, clip), -40.0, 0.0))
+        hi = float(np.clip(np.percentile(zf, 100.0 - clip), 0.0, 40.0))
+    elif clip_mode == "mad":
+        lo, hi = -float(clip), float(clip)
+    else:
+        raise ValueError(f"unknown clip_mode {clip_mode!r}")
+    return np.clip(z, lo, hi).astype(np.float32)
 
 
 def load_canonical(path: Path) -> tuple[np.ndarray, np.ndarray, tuple[float, ...]]:
@@ -83,7 +103,8 @@ def resample_to_grid(data: np.ndarray, affine: np.ndarray, shape: tuple[int, ...
     return np.asanyarray(out.dataobj).astype(np.float32)
 
 
-def preprocess_subject(trace_p: Path, adc_p: Path, mask_p: Path, size: int) -> dict:
+def preprocess_subject(trace_p: Path, adc_p: Path, mask_p: Path, size: int, clip: float = 6.0,
+                       clip_mode: str = "mad") -> dict:
     """Returns the arrays to cache plus a `flags` dict of per-subject data-quality observations.
 
     `flags` is *not* meant to be stored in the .npz (callers pop it and aggregate it into the run manifest)
@@ -114,8 +135,8 @@ def preprocess_subject(trace_p: Path, adc_p: Path, mask_p: Path, size: int) -> d
         flags["trace_degenerate_mad"] = True
     if deg_a:
         flags["adc_degenerate_mad"] = True
-    tr_n = robust_zscore(tr, fg)
-    ad_n = robust_zscore(ad, fg)
+    tr_n = robust_zscore(tr, fg, clip=clip, clip_mode=clip_mode)
+    ad_n = robust_zscore(ad, fg, clip=clip, clip_mode=clip_mode)
 
     flags["mask_max_value"] = float(mk.max())  # A2: 10 subjects encode the label as 2 or 3, not 1
     H, W, S = tr.shape

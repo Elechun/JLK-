@@ -15,10 +15,11 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from strokeai.data.preprocess import preprocess_subject  # noqa: E402
+from strokeai.utils import load_yaml  # noqa: E402
 
 
 def one(args):
-    sid, raw, out, size = args
+    sid, raw, out, size, clip, clip_mode = args
     dest = out / f"{sid}.npz"
     if dest.exists():
         return sid, "cached", {}
@@ -26,7 +27,7 @@ def one(args):
         r = preprocess_subject(raw / sid / "dwi" / f"{sid}_rec-TRACE_dwi.nii.gz",
                                raw / sid / "dwi" / f"{sid}_rec-ADC_dwi.nii.gz",
                                raw / "derivatives" / "lesion_masks" / sid / "dwi" / f"{sid}_space-TRACE_desc-lesionAcute_mask.nii.gz",
-                               size)
+                               size, clip=clip, clip_mode=clip_mode)
         flags = r.pop("flags", {})  # kept out of the .npz so the cache stays byte-reproducible
         np.savez(dest, **r)
         return sid, "ok", flags
@@ -39,17 +40,29 @@ def main():
     ap.add_argument("--raw", type=Path, default=Path("data/raw/ds004889"))
     ap.add_argument("--splits", type=Path, default=Path("data/splits.json"))
     ap.add_argument("--out", type=Path, default=Path("data/cache"))
-    ap.add_argument("--size", type=int, default=128)
+    ap.add_argument("--config", type=Path, default=Path("configs/seg_unet2d.yaml"),
+                    help="source of the defaults for --size / --clip / --clip-mode (single source of truth)")
+    ap.add_argument("--size", type=int, default=None)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--clip", type=float, default=None,
+                    help="normalisation clip: robust-sigma limit for --clip-mode mad, upper tail %% for pct")
+    ap.add_argument("--clip-mode", default=None, choices=["mad", "pct"])
     ap.add_argument("--which", nargs="+", default=["train", "val"], choices=["train", "val", "test"],
                     help="splits to preprocess; 'test' only at the final evaluation step (CLAUDE.md)")
     a = ap.parse_args()
+    # The cache geometry / normalisation must match what the training config declares, otherwise a stale
+    # cache is silently trained on (train.py asserts the size as well).
+    cfg = load_yaml(a.config) if a.config and a.config.exists() else {}
+    a.size = a.size if a.size is not None else int(cfg.get("size", 128))
+    a.clip = a.clip if a.clip is not None else float(cfg.get("clip", 6.0))
+    a.clip_mode = a.clip_mode or str(cfg.get("clip_mode", "mad"))
+    print(f"size={a.size} clip={a.clip} clip_mode={a.clip_mode} out={a.out}")
     a.out.mkdir(parents=True, exist_ok=True)
     sp = json.load(open(a.splits))
     ids = [s for w in a.which for s in sp[w]]
     errs, flagged = [], {}
     with cf.ProcessPoolExecutor(a.workers) as ex:
-        for i, (sid, st, fl) in enumerate(ex.map(one, [(s, a.raw, a.out, a.size) for s in ids], chunksize=8)):
+        for i, (sid, st, fl) in enumerate(ex.map(one, [(s, a.raw, a.out, a.size, a.clip, a.clip_mode) for s in ids], chunksize=8)):
             if st.startswith("ERROR"):
                 errs.append((sid, st))
             interesting = {k: v for k, v in fl.items() if k != "mask_max_value" or v != 1.0}
@@ -65,7 +78,7 @@ def main():
     for f in flags.values():
         for k in f:
             counts[k] = counts.get(k, 0) + 1
-    json.dump({"size": a.size, "which": done, "n": len(ids), "n_total_cached": len(list(a.out.glob("sub-*.npz"))),
+    json.dump({"size": a.size, "clip": a.clip, "clip_mode": a.clip_mode, "which": done, "n": len(ids), "n_total_cached": len(list(a.out.glob("sub-*.npz"))),
                "errors": errs, "flag_counts": counts, "flags": flags}, open(manifest_p, "w"), indent=1)
     print("done, errors:", errs[:10], len(errs), "| flag counts:", counts)
 

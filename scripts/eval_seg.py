@@ -25,13 +25,14 @@ if __name__ == "__main__":
     a = ap.parse_args()
     cfg = json.load(open(a.run / "config.json"))
     torch.set_num_threads(cfg.get("threads", 4))
-    model = UNet2D(in_ch=2, base=cfg["base_channels"], depth=cfg["depth"])
+    channels = cfg.get("channels")  # ADC ablation runs store a channel subset in their config
+    model = UNet2D(in_ch=2 if channels is None else len(channels), base=cfg["base_channels"], depth=cfg["depth"])
     model.load_state_dict(torch.load(a.run / a.ckpt, map_location="cpu"))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     ids = json.load(open(a.splits))[a.split]
     cache = SubjectCache(a.cache, ids)
-    summ, per = evaluate_subjects(model, cache, threshold=a.threshold or cfg["threshold"], device=device, tta_flip=a.tta, min_voxels=a.min_voxels)
+    summ, per = evaluate_subjects(model, cache, threshold=a.threshold or cfg["threshold"], device=device, tta_flip=a.tta, min_voxels=a.min_voxels, channels=channels)
     out = a.run / f"eval_{a.split}{'_tta' if a.tta else ''}.json"
     json.dump({"summary": summ, "per_subject": per, "threshold": a.threshold or cfg["threshold"], "tta": a.tta, "min_voxels": a.min_voxels},
               open(out, "w"), indent=1)

@@ -14,8 +14,8 @@ python scripts/build_index.py
 echo "== 3. patient-level split (seed 2026) =="
 python scripts/make_splits.py
 
-echo "== 4. preprocess train+val to 128x128 slice cache (test is NOT read until the final step) =="
-python scripts/preprocess.py --size 128 --workers "$(nproc)" --which train val
+echo "== 4. preprocess train+val slice cache; size/clip come from configs/seg_unet2d.yaml (test is NOT read until the final step) =="
+python scripts/preprocess.py --config configs/seg_unet2d.yaml --workers "$(nproc)" --which train val
 
 echo "== 5. unit tests =="
 python -m pytest -q
@@ -32,6 +32,6 @@ python scripts/train_cls.py --mask gt --model logreg
 python scripts/train_cls.py --mask pred --pred-dir runs/seg_unet2d/pred_masks --model logreg
 
 echo "== DONE (dev). Test-set evaluation is a separate, one-time step after A6 sign-off:"
-echo "   python scripts/preprocess.py --size 128 --workers \$(nproc) --which test"
+echo "   python scripts/preprocess.py --config configs/seg_unet2d.yaml --workers \$(nproc) --which test"
 echo "   python scripts/eval_seg.py --run runs/seg_unet2d --split test"
 echo "   python scripts/predict_masks.py --run runs/seg_unet2d --which test && python scripts/train_cls.py --mask pred --pred-dir runs/seg_unet2d/pred_masks --final"

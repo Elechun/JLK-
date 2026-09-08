@@ -1,0 +1,166 @@
+{
+ "loader": [
+  {
+   "batch_size": 32,
+   "num_workers": 0,
+   "pin_memory": true,
+   "first_batch_s": 0.151,
+   "batches": 59,
+   "slices_per_s": 5298.1,
+   "s_per_batch": 0.006
+  },
+  {
+   "batch_size": 32,
+   "num_workers": 2,
+   "pin_memory": true,
+   "first_batch_s": 0.039,
+   "batches": 59,
+   "slices_per_s": 6738.9,
+   "s_per_batch": 0.0047
+  },
+  {
+   "batch_size": 32,
+   "num_workers": 4,
+   "pin_memory": true,
+   "first_batch_s": 0.038,
+   "batches": 59,
+   "slices_per_s": 5300.1,
+   "s_per_batch": 0.006
+  },
+  {
+   "batch_size": 32,
+   "num_workers": 8,
+   "pin_memory": true,
+   "first_batch_s": 0.057,
+   "batches": 59,
+   "slices_per_s": 4676.1,
+   "s_per_batch": 0.0068
+  },
+  {
+   "batch_size": 32,
+   "num_workers": 12,
+   "pin_memory": true,
+   "first_batch_s": 0.051,
+   "batches": 59,
+   "slices_per_s": 6378.5,
+   "s_per_batch": 0.005
+  },
+  {
+   "batch_size": 32,
+   "num_workers": 16,
+   "pin_memory": true,
+   "first_batch_s": 0.027,
+   "batches": 59,
+   "slices_per_s": 4510.3,
+   "s_per_batch": 0.0071
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 0,
+   "pin_memory": true,
+   "first_batch_s": 0.088,
+   "batches": 59,
+   "slices_per_s": 5305.3,
+   "s_per_batch": 0.0121
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 2,
+   "pin_memory": true,
+   "first_batch_s": 0.077,
+   "batches": 59,
+   "slices_per_s": 7430.0,
+   "s_per_batch": 0.0086
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 4,
+   "pin_memory": true,
+   "first_batch_s": 0.088,
+   "batches": 59,
+   "slices_per_s": 6243.7,
+   "s_per_batch": 0.0103
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 8,
+   "pin_memory": true,
+   "first_batch_s": 0.046,
+   "batches": 59,
+   "slices_per_s": 8036.2,
+   "s_per_batch": 0.008
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 12,
+   "pin_memory": true,
+   "first_batch_s": 0.12,
+   "batches": 59,
+   "slices_per_s": 7892.3,
+   "s_per_batch": 0.0081
+  },
+  {
+   "batch_size": 64,
+   "num_workers": 16,
+   "pin_memory": true,
+   "first_batch_s": 0.042,
+   "batches": 59,
+   "slices_per_s": 7600.6,
+   "s_per_batch": 0.0084
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 0,
+   "pin_memory": true,
+   "first_batch_s": 0.067,
+   "batches": 59,
+   "slices_per_s": 5769.9,
+   "s_per_batch": 0.0222
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 2,
+   "pin_memory": true,
+   "first_batch_s": 0.089,
+   "batches": 59,
+   "slices_per_s": 7136.0,
+   "s_per_batch": 0.0179
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 4,
+   "pin_memory": true,
+   "first_batch_s": 0.24,
+   "batches": 59,
+   "slices_per_s": 9635.5,
+   "s_per_batch": 0.0133
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 8,
+   "pin_memory": true,
+   "first_batch_s": 0.082,
+   "batches": 59,
+   "slices_per_s": 8120.2,
+   "s_per_batch": 0.0158
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 12,
+   "pin_memory": true,
+   "first_batch_s": 0.077,
+   "batches": 59,
+   "slices_per_s": 7929.2,
+   "s_per_batch": 0.0161
+  },
+  {
+   "batch_size": 128,
+   "num_workers": 16,
+   "pin_memory": true,
+   "first_batch_s": 0.139,
+   "batches": 59,
+   "slices_per_s": 10448.4,
+   "s_per_batch": 0.0123
+  }
+ ]
+}

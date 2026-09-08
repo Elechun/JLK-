@@ -1,20 +1,43 @@
-# 2-D U-Net, TRACE+ADC, 128x128, CPU-friendly. Change hyper-parameters HERE only (A4 rule).
+# 2-D U-Net, TRACE+ADC. Change hyper-parameters HERE only (A4 rule).
+# Values fixed by A4 on 2026-09-09 from measurements on 1x RTX A6000 (see docs/agents/A4_report.md).
+
+# --- reproducibility -----------------------------------------------------------------------------
 seed: 2026
 threads: 4
-size: 128
+
+# --- preprocessing (read by scripts/preprocess.py; the cache must be rebuilt when these change) ---
+size: 128               # A4: 192 gave val Dice 0.6812 vs 0.6826 for 1.9x the epoch time -> no gain
+clip: 10.0              # robust-sigma clip. 6 -> 10 raised val Dice 0.5950 -> 0.6826 (A3 F3 / A4 s.7.1).
+                        # CHANGING THIS REQUIRES REBUILDING data/cache (scripts/preprocess.py).
+clip_mode: mad          # "mad" = fixed sigma clip, "pct" = per-subject percentile clip
+
+# --- model ---------------------------------------------------------------------------------------
 base_channels: 16
 depth: 4
-epochs: 12
-batch_size: 32
+
+# --- optimisation --------------------------------------------------------------------------------
+epochs: 40             # val Dice plateaus at ~0.69 from epoch ~35; 60/100/150 add <= +0.010 Dice but
+                       # cost volume ICC (0.914 -> 0.866 -> 0.857 -> 0.828). See A4 report s.10.1.
+batch_size: 64
 lr: 0.001
 min_lr: 0.00002
 warmup_frac: 0.05
 weight_decay: 0.0001
-grad_clip: 1.0
+grad_clip: 1.0          # fires on 20-30 % of steps in epochs 2-4, ~3 % over a 40-epoch run
+                        # (NOT the 0 % the 40-subject CPU smoke test reported)
 dice_weight: 1.0
+dice_reduction: batch   # "batch" = one micro-Dice per batch, "sample" = mean of per-slice Dice
 pos_weight: null
 neg_pos_ratio: 1.0      # negatives sampled per positive slice each epoch (null = all slices)
 augment: true
 threshold: 0.5
-num_workers: 0
+
+# --- runtime (GPU) -------------------------------------------------------------------------------
+# amp: null | bf16 | fp16.  bf16 + channels_last is 2.1x the fp32 step rate and stays bit-reproducible.
+amp: bf16
+channels_last: true
+pin_memory: true
+cudnn_benchmark: false  # true costs reproducibility for ~2 % speed -> not worth it (charter)
+num_workers: 8          # results are bit-identical for num_workers 0 / 8 / 16 (A3 fixed the RNG fork)
+prefetch_factor: 4
 log_every: 50

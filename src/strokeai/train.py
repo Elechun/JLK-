@@ -24,24 +24,42 @@ def cosine_warmup(step: int, total: int, warmup: int, base_lr: float, min_lr: fl
     return min_lr + 0.5 * (base_lr - min_lr) * (1 + math.cos(math.pi * t))
 
 
+_AMP_DTYPE = {"bf16": torch.bfloat16, "fp16": torch.float16}
+
+
+def amp_context(amp: str | None, device: str):
+    """autocast context for `amp` in {None, 'bf16', 'fp16'}; a no-op on CPU or when amp is falsy."""
+    enabled = bool(amp) and str(device).startswith("cuda")
+    return torch.autocast("cuda", dtype=_AMP_DTYPE.get(amp, torch.float32), enabled=enabled)
+
+
 @torch.no_grad()
-def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, device="cpu", tta_flip: bool = False) -> np.ndarray:
-    """img: (S, 2, H, W) float16 -> prob (S, H, W) float32."""
+def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, device="cpu", tta_flip: bool = False,
+                    channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False) -> np.ndarray:
+    """img: (S, C, H, W) float16 -> prob (S, H, W) float32."""
     model.eval()
     out = []
     for i in range(0, len(img), batch):
-        x = torch.from_numpy(img[i:i + batch].astype(np.float32)).to(device)
-        p = torch.sigmoid(model(x))
-        if tta_flip:
-            p = 0.5 * (p + torch.flip(model(torch.flip(x, dims=[3])).sigmoid(), dims=[3]))
-        out.append(p[:, 0].cpu().numpy())
+        arr = img[i:i + batch].astype(np.float32)
+        if channels is not None:
+            arr = arr[:, channels]
+        x = torch.from_numpy(arr).to(device)
+        if channels_last:
+            x = x.contiguous(memory_format=torch.channels_last)
+        with amp_context(amp, device):
+            p = torch.sigmoid(model(x).float())
+            if tta_flip:
+                p = 0.5 * (p + torch.flip(model(torch.flip(x, dims=[3])).float().sigmoid(), dims=[3]))
+        out.append(p[:, 0].float().cpu().numpy())
     return np.concatenate(out, axis=0)
 
 
-def evaluate_subjects(model, cache: SubjectCache, threshold: float = 0.5, device="cpu", tta_flip=False, min_voxels: int = 0) -> tuple[dict, list[dict]]:
+def evaluate_subjects(model, cache: SubjectCache, threshold: float = 0.5, device="cpu", tta_flip=False, min_voxels: int = 0,
+                      channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False) -> tuple[dict, list[dict]]:
     per = []
     for sid in cache.ids:
-        prob = predict_subject(model, cache.img[sid], device=device, tta_flip=tta_flip)
+        prob = predict_subject(model, cache.img[sid], device=device, tta_flip=tta_flip, channels=channels,
+                               amp=amp, channels_last=channels_last)
         pred = prob >= threshold
         if min_voxels and pred.sum() < min_voxels:
             pred[:] = False
@@ -54,26 +72,55 @@ def evaluate_subjects(model, cache: SubjectCache, threshold: float = 0.5, device
 
 def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str = "cpu", max_steps: int | None = None) -> dict:
     seed_everything(cfg["seed"])
+    # seed_everything sets cudnn.deterministic=True / benchmark=False.  `cudnn_benchmark: true` in the
+    # config trades that reproducibility guarantee for speed; A4 measured the gain at ~2 %, so the
+    # shipped config leaves it off.
+    if cfg.get("cudnn_benchmark", False):
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
     torch.set_num_threads(cfg.get("threads", 4))
     run_dir.mkdir(parents=True, exist_ok=True)
     log = JsonlLogger(run_dir / "log.jsonl")
     json.dump(cfg, open(run_dir / "config.json", "w"), indent=1)
 
+    channels = cfg.get("channels")  # None = both cached channels (TRACE, ADC)
+    in_ch = 2 if channels is None else len(channels)
+    amp = cfg.get("amp")  # None | "bf16" | "fp16"
+    ch_last = bool(cfg.get("channels_last", False))
+    pin = bool(cfg.get("pin_memory", False)) and str(device).startswith("cuda")
+    num_workers = int(cfg.get("num_workers", 0))
+
     train_cache = SubjectCache(cache_dir, splits["train"])
     val_cache = SubjectCache(cache_dir, splits["val"])
     assert not set(train_cache.ids) & set(val_cache.ids), "train/val overlap"
-    ds = SliceDataset(train_cache, neg_pos_ratio=cfg["neg_pos_ratio"], augment=cfg["augment"], seed=cfg["seed"])
+    # Guard against a stale cache: `size` (and `clip`) live in the config, but the cache is materialised by
+    # scripts/preprocess.py.  Training on a 128^2 cache while the config asks for 192^2 used to pass silently.
+    cached_size = int(train_cache.img[train_cache.ids[0]].shape[-1])
+    assert cached_size == int(cfg.get("size", cached_size)), (
+        f"cache at {cache_dir} is {cached_size}^2 but the config asks for {cfg.get('size')}^2 -- "
+        f"re-run scripts/preprocess.py (it reads size/clip from the same config)")
+    ds = SliceDataset(train_cache, neg_pos_ratio=cfg["neg_pos_ratio"], augment=cfg["augment"], seed=cfg["seed"],
+                      channels=channels)
     g = torch.Generator().manual_seed(cfg["seed"])
-    dl = DataLoader(ds, batch_size=cfg["batch_size"], shuffle=True, num_workers=cfg.get("num_workers", 0), generator=g, drop_last=True)
+    # NOTE: persistent_workers must stay False -- `ds.resample()` runs in the parent between epochs and
+    # persistent workers would keep serving the *first* epoch's item list.
+    dl_kw = {"prefetch_factor": int(cfg.get("prefetch_factor", 4))} if num_workers > 0 else {}
+    dl = DataLoader(ds, batch_size=cfg["batch_size"], shuffle=True, num_workers=num_workers, generator=g,
+                    drop_last=True, pin_memory=pin, **dl_kw)
 
-    model = UNet2D(in_ch=2, base=cfg["base_channels"], depth=cfg["depth"]).to(device)
+    model = UNet2D(in_ch=in_ch, base=cfg["base_channels"], depth=cfg["depth"]).to(device)
+    if ch_last:
+        model = model.to(memory_format=torch.channels_last)
+    scaler = torch.amp.GradScaler("cuda", enabled=(amp == "fp16" and str(device).startswith("cuda")))
     n_params = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     steps_per_epoch = len(dl)
     total = steps_per_epoch * cfg["epochs"]
     warmup = int(cfg["warmup_frac"] * total)
     log.log(event="start", n_params=n_params, n_train_subjects=len(train_cache.ids), n_val_subjects=len(val_cache.ids),
-            n_train_slices_per_epoch=len(ds), steps_per_epoch=steps_per_epoch, total_steps=total)
+            n_train_slices_per_epoch=len(ds), steps_per_epoch=steps_per_epoch, total_steps=total, in_channels=in_ch,
+            amp=amp or "fp32", channels_last=ch_last, num_workers=num_workers, pin_memory=pin,
+            cudnn_benchmark=bool(torch.backends.cudnn.benchmark), device=str(device))
 
     best = {"val_dice": -1.0, "epoch": -1}
     step = 0
@@ -86,14 +133,29 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
             lr = cosine_warmup(step, total, warmup, cfg["lr"], cfg["min_lr"])
             for pg in opt.param_groups:
                 pg["lr"] = lr
-            x, y = x.to(device), y.to(device)
-            logits = model(x)
-            loss, parts = bce_dice_loss(logits, y, dice_weight=cfg["dice_weight"], pos_weight=cfg.get("pos_weight"))
+            x = x.to(device, non_blocking=pin)
+            y = y.to(device, non_blocking=pin)
+            if ch_last:
+                x = x.contiguous(memory_format=torch.channels_last)
+            with amp_context(amp, device):
+                logits = model(x)
+            # the loss is always computed in fp32: BCE-with-logits and the Dice sum over ~5e5 pixels are
+            # the numerically sensitive parts, and they cost nothing next to the convolutions.
+            loss, parts = bce_dice_loss(logits.float(), y, dice_weight=cfg["dice_weight"], pos_weight=cfg.get("pos_weight"),
+                                        dice_reduction=cfg.get("dice_reduction", "batch"))
             opt.zero_grad(set_to_none=True)
-            loss.backward()
-            gn = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["grad_clip"]))
-            clipped += gn > cfg["grad_clip"]
-            opt.step()
+            if scaler.is_enabled():
+                scaler.scale(loss).backward()
+                scaler.unscale_(opt)
+                gn = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["grad_clip"]))
+                clipped += gn > cfg["grad_clip"]
+                scaler.step(opt)
+                scaler.update()
+            else:
+                loss.backward()
+                gn = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["grad_clip"]))
+                clipped += gn > cfg["grad_clip"]
+                opt.step()
             losses.append(float(loss.detach()))
             gnorms.append(gn)
             step += 1
@@ -104,7 +166,8 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
                 break
         train_time = time.time() - t0
         t1 = time.time()
-        val_summary, per = evaluate_subjects(model, val_cache, threshold=cfg["threshold"], device=device)
+        val_summary, per = evaluate_subjects(model, val_cache, threshold=cfg["threshold"], device=device,
+                                             channels=channels, amp=amp, channels_last=ch_last)
         val_dice = val_summary["dice_pos_mean"]
         rec = dict(event="epoch", epoch=epoch, train_loss=float(np.mean(losses)), grad_norm_mean=float(np.mean(gnorms)),
                    grad_norm_p95=float(np.percentile(gnorms, 95)), clip_frac=clipped / max(len(gnorms), 1), lr_end=lr,

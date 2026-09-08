@@ -1,0 +1,62 @@
+[
+ {
+  "batch_size": 64,
+  "size": 128,
+  "amp": "bf16",
+  "channels_last": true,
+  "cudnn_benchmark": false,
+  "s_per_step": 0.01732,
+  "slices_per_s": 3695.0,
+  "peak_mem_MiB": 793.3
+ },
+ {
+  "batch_size": 64,
+  "size": 128,
+  "amp": "bf16",
+  "channels_last": true,
+  "cudnn_benchmark": true,
+  "s_per_step": 0.01696,
+  "slices_per_s": 3774.2,
+  "peak_mem_MiB": 1737.4
+ },
+ {
+  "batch_size": 64,
+  "size": 128,
+  "amp": "fp32",
+  "channels_last": true,
+  "cudnn_benchmark": false,
+  "s_per_step": 0.03627,
+  "slices_per_s": 1764.6,
+  "peak_mem_MiB": 1475.8
+ },
+ {
+  "batch_size": 128,
+  "size": 128,
+  "amp": "bf16",
+  "channels_last": true,
+  "cudnn_benchmark": false,
+  "s_per_step": 0.03277,
+  "slices_per_s": 3906.0,
+  "peak_mem_MiB": 1558.4
+ },
+ {
+  "batch_size": 128,
+  "size": 128,
+  "amp": "bf16",
+  "channels_last": true,
+  "cudnn_benchmark": true,
+  "s_per_step": 0.03204,
+  "slices_per_s": 3994.6,
+  "peak_mem_MiB": 3461.3
+ },
+ {
+  "batch_size": 128,
+  "size": 128,
+  "amp": "fp32",
+  "channels_last": true,
+  "cudnn_benchmark": false,
+  "s_per_step": 0.07311,
+  "slices_per_s": 1750.9,
+  "peak_mem_MiB": 2925.2
+ }
+]

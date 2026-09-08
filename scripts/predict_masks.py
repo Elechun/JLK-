@@ -23,7 +23,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     cfg = json.load(open(a.run / "config.json"))
     torch.set_num_threads(cfg.get("threads", 4))
-    model = UNet2D(in_ch=2, base=cfg["base_channels"], depth=cfg["depth"])
+    channels = cfg.get("channels")
+    model = UNet2D(in_ch=2 if channels is None else len(channels), base=cfg["base_channels"], depth=cfg["depth"])
     model.load_state_dict(torch.load(a.run / "best.pt", map_location="cpu"))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
@@ -34,6 +35,6 @@ if __name__ == "__main__":
     cache = SubjectCache(a.cache, ids)
     thr = a.threshold or cfg["threshold"]
     for sid in ids:
-        prob = predict_subject(model, cache.img[sid], device=device)
+        prob = predict_subject(model, cache.img[sid], device=device, channels=channels)
         np.savez_compressed(out / f"{sid}.npz", mask=(prob >= thr).astype(np.uint8), prob_max=prob.max())
     print("wrote", len(ids), "masks to", out)

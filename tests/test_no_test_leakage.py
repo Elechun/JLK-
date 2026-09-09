@@ -87,10 +87,23 @@ def test_splits_are_patient_level_disjoint_and_match_the_charter_hash():
 @pytest.mark.skipif(not (ROOT / "data/cache").exists() or not (ROOT / "data/splits.json").exists(),
                     reason="no preprocessed cache in this checkout")
 def test_cache_holds_no_test_subject():
+    """Before the single final evaluation the cache must contain no test subject.
+
+    The final evaluation legitimately preprocesses the test split (charter section C), so the invariant
+    is conditional rather than absolute: a cached test subject is a leak *unless* the final evaluation
+    has actually been run, which runs/*/eval_test.json records. Deleting that eval file and keeping the
+    cache re-arms the guard, so this still catches a premature preprocess on a fresh checkout.
+    """
     sp = json.load(open(ROOT / "data/splits.json"))
     cached = {p.stem for p in (ROOT / "data/cache").glob("sub-*.npz")}
     leaked = sorted(cached & set(sp["test"]))
-    assert not leaked, f"test subjects were preprocessed: {leaked[:10]}"
+    if not leaked:
+        return
+    final_evals = sorted(ROOT.glob("runs/*/eval_test.json"))
+    assert final_evals, (
+        f"{len(leaked)} test subjects are preprocessed but no runs/*/eval_test.json exists: "
+        f"the held-out split was read before the final evaluation ({leaked[:5]})"
+    )
 
 
 @pytest.mark.skipif(not (ROOT / "data/splits.json").exists(), reason="no data/splits.json in this checkout")

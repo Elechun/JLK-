@@ -1,0 +1,93 @@
+{
+ "split": "val",
+ "n": 218,
+ "arms": {
+  "mad_clip10": {
+   "all": {
+    "n": 218,
+    "dice_mean": 0.6830082751672188,
+    "detection": 0.9678899082568807
+   },
+   "Philips": {
+    "n": 213,
+    "dice_mean": 0.6914745943033183,
+    "detection": 0.9812206572769953
+   },
+   "Siemens": {
+    "n": 3,
+    "dice_mean": 0.0,
+    "detection": 0.0
+   },
+   "GE": {
+    "n": 2,
+    "dice_mean": 0.8058576999234685,
+    "detection": 1.0
+   },
+   "large_ge50ml": {
+    "n": 38,
+    "dice_mean": 0.8535120842361652,
+    "detection": 0.9736842105263158
+   },
+   "small_lt2ml": {
+    "n": 60,
+    "dice_mean": 0.5480686323432494,
+    "detection": 0.9166666666666666
+   }
+  },
+  "percentile": {
+   "all": {
+    "n": 218,
+    "dice_mean": 0.6803592386867121,
+    "detection": 0.9678899082568807
+   },
+   "Philips": {
+    "n": 213,
+    "dice_mean": 0.6848051498568419,
+    "detection": 0.9765258215962441
+   },
+   "Siemens": {
+    "n": 3,
+    "dice_mean": 0.28141558905087444,
+    "detection": 0.3333333333333333
+   },
+   "GE": {
+    "n": 2,
+    "dice_mean": 0.8052851735216464,
+    "detection": 1.0
+   },
+   "large_ge50ml": {
+    "n": 38,
+    "dice_mean": 0.8722409170917104,
+    "detection": 1.0
+   },
+   "small_lt2ml": {
+    "n": 60,
+    "dice_mean": 0.5347914850972667,
+    "detection": 0.9
+   }
+  }
+ },
+ "siemens_subjects": {
+  "sub-127": {
+   "gt_ml": 107.34335710830058,
+   "dice_mad": 0.0,
+   "dice_percentile": 0.8442467671526234,
+   "detected_mad": false,
+   "detected_percentile": true
+  },
+  "sub-154": {
+   "gt_ml": 1.3367080302152259,
+   "dice_mad": 0.0,
+   "dice_percentile": 0.0,
+   "detected_mad": false,
+   "detected_percentile": false
+  },
+  "sub-337": {
+   "gt_ml": 2.8865130277625184,
+   "dice_mad": 0.0,
+   "dice_percentile": 0.0,
+   "detected_mad": false,
+   "detected_percentile": false
+  }
+ }
+}

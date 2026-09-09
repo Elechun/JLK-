@@ -10,6 +10,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from strokeai.data.dataset import SubjectCache  # noqa: E402
 from strokeai.models import UNet2D  # noqa: E402
+from strokeai.data.dataset import context_channel_count  # noqa: E402
 from strokeai.train import evaluate_subjects  # noqa: E402
 
 if __name__ == "__main__":
@@ -26,13 +27,17 @@ if __name__ == "__main__":
     cfg = json.load(open(a.run / "config.json"))
     torch.set_num_threads(cfg.get("threads", 4))
     channels = cfg.get("channels")  # ADC ablation runs store a channel subset in their config
-    model = UNet2D(in_ch=2 if channels is None else len(channels), base=cfg["base_channels"], depth=cfg["depth"])
+    context = int(cfg.get("context", 0) or 0)  # A4b: 2.5-D runs stack neighbouring slices as channels
+    context_mode = cfg.get("context_mode", "all")
+    in_ch = context_channel_count(2 if channels is None else len(channels), context, context_mode)
+    model = UNet2D(in_ch=in_ch, base=cfg["base_channels"], depth=cfg["depth"])
     model.load_state_dict(torch.load(a.run / a.ckpt, map_location="cpu"))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     ids = json.load(open(a.splits))[a.split]
     cache = SubjectCache(a.cache, ids)
-    summ, per = evaluate_subjects(model, cache, threshold=a.threshold or cfg["threshold"], device=device, tta_flip=a.tta, min_voxels=a.min_voxels, channels=channels)
+    summ, per = evaluate_subjects(model, cache, threshold=a.threshold or cfg["threshold"], device=device, tta_flip=a.tta, min_voxels=a.min_voxels, channels=channels,
+                                  context=context, context_mode=context_mode)
     out = a.run / f"eval_{a.split}{'_tta' if a.tta else ''}.json"
     json.dump({"summary": summ, "per_subject": per, "threshold": a.threshold or cfg["threshold"], "tta": a.tta, "min_voxels": a.min_voxels},
               open(out, "w"), indent=1)

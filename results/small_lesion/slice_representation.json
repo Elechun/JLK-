@@ -1,0 +1,142 @@
+{
+ "n_train_subjects": 1015,
+ "n_slices": 25963,
+ "n_positive_slices": 7497,
+ "lesion_ml_quantiles": {
+  "0.0": 0.06740278252615829,
+  "0.05": 0.3609735266679522,
+  "0.25": 1.690942143208399,
+  "0.5": 8.201552360678587,
+  "0.75": 34.05117742405561,
+  "0.95": 132.44243056060887,
+  "1.0": 523.65089065629
+ },
+ "bands_uniform_sampler": {
+  "[0,2)": {
+   "n_subjects": 284,
+   "pos_slices": 768,
+   "pos_slices_per_subject": 2.704225352112676,
+   "share_of_subjects_pct": 27.980295566502463,
+   "share_of_pos_slices_pct": 10.244097639055623
+  },
+  "[2,10)": {
+   "n_subjects": 254,
+   "pos_slices": 1504,
+   "pos_slices_per_subject": 5.921259842519685,
+   "share_of_subjects_pct": 25.02463054187192,
+   "share_of_pos_slices_pct": 20.061357876483928
+  },
+  "[10,50)": {
+   "n_subjects": 290,
+   "pos_slices": 2725,
+   "pos_slices_per_subject": 9.39655172413793,
+   "share_of_subjects_pct": 28.571428571428573,
+   "share_of_pos_slices_pct": 36.34787248232627
+  },
+  "[50,inf)": {
+   "n_subjects": 187,
+   "pos_slices": 2500,
+   "pos_slices_per_subject": 13.368983957219251,
+   "share_of_subjects_pct": 18.423645320197043,
+   "share_of_pos_slices_pct": 33.346672002134184
+  }
+ },
+ "weighted": {
+  "none^1": {
+   "slice_weight": "none",
+   "power": 1.0,
+   "band_share_of_draws_pct": {
+    "[0,2)": 10.24409763905562,
+    "[2,10)": 20.061357876483925,
+    "[10,50)": 36.34787248232626,
+    "[50,inf)": 33.346672002134184
+   },
+   "ess_slices": 7497.000000000004,
+   "ess_frac_of_pos": 1.0000000000000004,
+   "ess_subjects": 743.5213445689418,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 0.3067893824196343,
+   "expected_draws_per_epoch_small": 768.0
+  },
+  "inv_subject^1": {
+   "slice_weight": "inv_subject",
+   "power": 1.0,
+   "band_share_of_draws_pct": {
+    "[0,2)": 27.980295566502463,
+    "[2,10)": 25.024630541871918,
+    "[10,50)": 28.57142857142857,
+    "[50,inf)": 18.42364532019704
+   },
+   "ess_slices": 4449.673631534337,
+   "ess_frac_of_pos": 0.5935272284292833,
+   "ess_subjects": 1014.9999999999999,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 0.09852216748768476,
+   "expected_draws_per_epoch_small": 2097.6827586206896
+  },
+  "inv_volume^0.5": {
+   "slice_weight": "inv_volume",
+   "power": 0.5,
+   "band_share_of_draws_pct": {
+    "[0,2)": 36.204543490053936,
+    "[2,10)": 29.71799801852834,
+    "[10,50)": 23.64550969473374,
+    "[50,inf)": 10.431948796683987
+   },
+   "ess_slices": 3501.955388609864,
+   "ess_frac_of_pos": 0.46711423084031795,
+   "ess_subjects": 836.7091438732349,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 0.3139636903411648,
+   "expected_draws_per_epoch_small": 2714.2546254493436
+  },
+  "inv_volume^1": {
+   "slice_weight": "inv_volume",
+   "power": 1.0,
+   "band_share_of_draws_pct": {
+    "[0,2)": 69.19028135976161,
+    "[2,10)": 21.632690532614834,
+    "[10,50)": 7.56233619949565,
+    "[50,inf)": 1.6146919081279025
+   },
+   "ess_slices": 764.5719801232564,
+   "ess_frac_of_pos": 0.10198372417276996,
+   "ess_subjects": 376.9223449397637,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 1.1506631496484132,
+   "expected_draws_per_epoch_small": 5187.1953935413285
+  },
+  "inv_area^0.5": {
+   "slice_weight": "inv_area",
+   "power": 0.5,
+   "band_share_of_draws_pct": {
+    "[0,2)": 20.886828427514317,
+    "[2,10)": 29.01661136475354,
+    "[10,50)": 32.07638380381697,
+    "[50,inf)": 18.020176403915173
+   },
+   "ess_slices": 4144.565115782342,
+   "ess_frac_of_pos": 0.5528298140299243,
+   "ess_subjects": 756.1547392221596,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 0.4797716624990722,
+   "expected_draws_per_epoch_small": 1565.8855272107485
+  },
+  "inv_area^1": {
+   "slice_weight": "inv_area",
+   "power": 1.0,
+   "band_share_of_draws_pct": {
+    "[0,2)": 29.353175173606004,
+    "[2,10)": 33.22587193774675,
+    "[10,50)": 26.446680822911723,
+    "[50,inf)": 10.974272065735523
+   },
+   "ess_slices": 1207.2447904445637,
+   "ess_frac_of_pos": 0.16103038421296034,
+   "ess_subjects": 474.6140160545017,
+   "n_subjects": 1015,
+   "max_subject_share_pct": 1.0134835353333551,
+   "expected_draws_per_epoch_small": 2200.607542765242
+  }
+ }
+}

@@ -36,6 +36,19 @@ flip_axis: ap           # mirror augmentation axis. Cache is (S,C,H,W) with H = 
                         # A5b measured lr vs ap at 40 epochs x 3 seeds (docs/agents/A5b_report.md) before deciding.
 threshold: 0.5
 
+# --- small-lesion options (A4b 2026-09-09) --------------------------------------------------------
+# All four keys are OMITTED here on purpose: their code defaults reproduce this file's behaviour
+# exactly (runs/seg_unet2d must stay bit-reproducible), and A4b measured that none of them beats the
+# seed noise of the < 2 mL band.  Set them in a separate config to re-run the experiment; see
+# docs/agents/A4b_small_lesion_report.md and scripts/analysis/small_lesion_experiments.py.
+#   slice_weight: none      # none | inv_subject | inv_volume | inv_area -- lesion-size-aware sampling
+#                           # of the positive slices (default none = every positive slice once)
+#   slice_weight_power: 1.0 # exponent of the inverse weight
+#   context: 0              # 2.5-D: neighbouring slices per side stacked as channels (0 = plain 2-D)
+#   context_mode: all       # all = every channel gets the neighbours (6 ch), trace = only channel 0 (4 ch)
+#   region_loss: dice       # dice | tversky (tversky_alpha/beta/gamma weight FN vs FP)
+#   dice_reduction: sample_invsize + invsize_power: per-slice Dice weighted by 1/lesion size
+
 # --- runtime (GPU) -------------------------------------------------------------------------------
 # amp: null | bf16 | fp16.  bf16 + channels_last is 2.1x the fp32 step rate and stays bit-reproducible.
 amp: bf16

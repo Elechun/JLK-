@@ -1,0 +1,61 @@
+# A4b 2026-09-09 — the shipped config PLUS lesion-size-aware slice sampling (H2).
+#
+# This file exists as EVIDENCE, not as the shipped setting.  `configs/seg_unet2d.yaml` and
+# `runs/seg_unet2d/best.pt` are unchanged: the test split was already opened once (charter section C
+# forbids re-training / re-selection), so nothing trained from this file has been or may be evaluated
+# on test.  Use it for the NEXT training cycle.
+#
+# Measured on val (5 seeds: 2026/7/77/123/777, 40 epochs, everything else identical to seg_unet2d.yaml)
+# -- docs/agents/A4b_small_lesion_report.md, results/small_lesion/summary.json:
+#     < 2 mL Dice   0.5430 -> 0.5733  (+0.0302 = 2.19 x the baseline seed SD of 0.0138)
+#     overall Dice  0.6822 -> 0.6929  (+0.0107; all five seeds beat every baseline seed)
+#     volume ICC    0.8782 -> 0.9134  (+0.0352, i.e. not hurt; the seed SD of ICC is 0.042)
+#     sensitivity   0.966  -> 0.971
+# The gain comes from converting missed small lesions into detections (subjects with Dice = 0 in every
+# seed: 7 -> 4), not from better delineation.  A stronger exponent (1.0) raises the small band further
+# (+0.037) but costs volume ICC (0.878 -> 0.834), so 0.5 is the setting that improves every metric.
+
+# --- reproducibility -----------------------------------------------------------------------------
+seed: 2026
+threads: 4
+
+# --- preprocessing (identical to seg_unet2d.yaml; the same data/cache is reused) -------------------
+size: 128
+clip: 10.0
+clip_mode: mad
+
+# --- model ---------------------------------------------------------------------------------------
+base_channels: 16
+depth: 4
+
+# --- optimisation --------------------------------------------------------------------------------
+epochs: 40
+batch_size: 64
+lr: 0.001
+min_lr: 0.00002
+warmup_frac: 0.05
+weight_decay: 0.0001
+grad_clip: 1.0
+dice_weight: 1.0
+dice_reduction: batch
+pos_weight: null
+neg_pos_ratio: 1.0
+augment: true
+flip_axis: ap           # kept at the shipped value so this file differs from seg_unet2d.yaml in
+                        # exactly the two keys below (A5b measured lr vs ap separately: +0.009, noise)
+threshold: 0.5
+
+# --- the intervention (A4b H2) ---------------------------------------------------------------------
+slice_weight: inv_volume   # resample the positive slices with probability proportional to
+slice_weight_power: 0.5    # (subject lesion volume in mL)^-0.5.  The number of positive slices per
+                           # epoch is unchanged, so steps/epoch and the LR schedule are identical.
+                           # Share of the < 2 mL band among the drawn slices: 10.2 % -> 36.2 %.
+
+# --- runtime (GPU) -------------------------------------------------------------------------------
+amp: bf16
+channels_last: true
+pin_memory: true
+cudnn_benchmark: false
+num_workers: 8
+prefetch_factor: 4
+log_every: 50

@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from .data.dataset import FLIP_AXES, SliceDataset, SubjectCache
+from .data.dataset import FLIP_AXES, SliceDataset, SubjectCache, context_channel_count, stack_context
 from .losses import bce_dice_loss
 from .metrics import dice_binary, segmentation_summary, volume_ml
 from .models import UNet2D
@@ -36,19 +36,25 @@ def amp_context(amp: str | None, device: str):
 @torch.no_grad()
 def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, device="cpu", tta_flip: bool = False,
                     channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False,
-                    flip_axis: str = "lr") -> np.ndarray:
+                    flip_axis: str = "lr", context: int = 0, context_mode: str = "all") -> np.ndarray:
     """img: (S, C, H, W) float16 -> prob (S, H, W) float32.
 
     `tta_flip` averages with the mirrored input; the mirror axis follows `flip_axis` (same convention as
     `SliceDataset`: "lr" = H axis = tensor dim 2, "ap" = W axis = dim 3).  Not used by the shipped config.
+    `context` > 0 builds the same 2.5-D stack the training set builds (A4b H4), so train and inference
+    cannot drift apart: both go through `stack_context`.
     """
     model.eval()
     tta_dims = [ax + 1 for ax in FLIP_AXES[flip_axis]]  # (C,H,W) axis -> (B,C,H,W) dim
     out = []
     for i in range(0, len(img), batch):
-        arr = img[i:i + batch].astype(np.float32)
-        if channels is not None:
-            arr = arr[:, channels]
+        if context > 0:
+            arr = np.stack([stack_context(img, s, context, context_mode, channels)
+                            for s in range(i, min(i + batch, len(img)))])
+        else:
+            arr = img[i:i + batch].astype(np.float32)
+            if channels is not None:
+                arr = arr[:, channels]
         x = torch.from_numpy(arr).to(device)
         if channels_last:
             x = x.contiguous(memory_format=torch.channels_last)
@@ -61,11 +67,12 @@ def predict_subject(model: torch.nn.Module, img: np.ndarray, batch: int = 64, de
 
 
 def evaluate_subjects(model, cache: SubjectCache, threshold: float = 0.5, device="cpu", tta_flip=False, min_voxels: int = 0,
-                      channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False) -> tuple[dict, list[dict]]:
+                      channels: list[int] | None = None, amp: str | None = None, channels_last: bool = False,
+                      context: int = 0, context_mode: str = "all") -> tuple[dict, list[dict]]:
     per = []
     for sid in cache.ids:
         prob = predict_subject(model, cache.img[sid], device=device, tta_flip=tta_flip, channels=channels,
-                               amp=amp, channels_last=channels_last)
+                               amp=amp, channels_last=channels_last, context=context, context_mode=context_mode)
         pred = prob >= threshold
         if min_voxels and pred.sum() < min_voxels:
             pred[:] = False
@@ -90,7 +97,10 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
     json.dump(cfg, open(run_dir / "config.json", "w"), indent=1)
 
     channels = cfg.get("channels")  # None = both cached channels (TRACE, ADC)
-    in_ch = 2 if channels is None else len(channels)
+    # A4b H4: `context` neighbours on each side are stacked as extra input channels (0 = plain 2-D).
+    context = int(cfg.get("context", 0) or 0)
+    context_mode = cfg.get("context_mode", "all")
+    in_ch = context_channel_count(2 if channels is None else len(channels), context, context_mode)
     amp = cfg.get("amp")  # None | "bf16" | "fp16"
     ch_last = bool(cfg.get("channels_last", False))
     pin = bool(cfg.get("pin_memory", False)) and str(device).startswith("cuda")
@@ -108,7 +118,11 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
     # `flip_axis` (A5b): "lr" = anatomical left-right mirror.  runs/seg_unet2d was trained before the key
     # existed, with the W-axis flip = "ap"; reproduce it with `flip_axis: ap` in the config.
     ds = SliceDataset(train_cache, neg_pos_ratio=cfg["neg_pos_ratio"], augment=cfg["augment"], seed=cfg["seed"],
-                      channels=channels, flip_axis=cfg.get("flip_axis", "lr"))
+                      channels=channels, flip_axis=cfg.get("flip_axis", "lr"),
+                      slice_weight=cfg.get("slice_weight", "none"),
+                      slice_weight_power=float(cfg.get("slice_weight_power", 1.0)),
+                      context=context, context_mode=context_mode)
+    assert ds.in_channels == in_ch, (ds.in_channels, in_ch)
     g = torch.Generator().manual_seed(cfg["seed"])
     # NOTE: persistent_workers must stay False -- `ds.resample()` runs in the parent between epochs and
     # persistent workers would keep serving the *first* epoch's item list.
@@ -128,7 +142,10 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
     log.log(event="start", n_params=n_params, n_train_subjects=len(train_cache.ids), n_val_subjects=len(val_cache.ids),
             n_train_slices_per_epoch=len(ds), steps_per_epoch=steps_per_epoch, total_steps=total, in_channels=in_ch,
             amp=amp or "fp32", channels_last=ch_last, num_workers=num_workers, pin_memory=pin,
-            cudnn_benchmark=bool(torch.backends.cudnn.benchmark), device=str(device), flip_axis=ds.flip_axis)
+            cudnn_benchmark=bool(torch.backends.cudnn.benchmark), device=str(device), flip_axis=ds.flip_axis,
+            slice_weight=ds.slice_weight, slice_weight_power=ds.slice_weight_power, context=context,
+            context_mode=context_mode, region_loss=cfg.get("region_loss", "dice"),
+            dice_reduction=cfg.get("dice_reduction", "batch"))
 
     best = {"val_dice": -1.0, "epoch": -1}
     step = 0
@@ -150,7 +167,12 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
             # the loss is always computed in fp32: BCE-with-logits and the Dice sum over ~5e5 pixels are
             # the numerically sensitive parts, and they cost nothing next to the convolutions.
             loss, parts = bce_dice_loss(logits.float(), y, dice_weight=cfg["dice_weight"], pos_weight=cfg.get("pos_weight"),
-                                        dice_reduction=cfg.get("dice_reduction", "batch"))
+                                        dice_reduction=cfg.get("dice_reduction", "batch"),
+                                        region_loss=cfg.get("region_loss", "dice"),
+                                        tversky_alpha=float(cfg.get("tversky_alpha", 0.7)),
+                                        tversky_beta=float(cfg.get("tversky_beta", 0.3)),
+                                        tversky_gamma=float(cfg.get("tversky_gamma", 1.0)),
+                                        invsize_power=float(cfg.get("invsize_power", 0.5)))
             opt.zero_grad(set_to_none=True)
             if scaler.is_enabled():
                 scaler.scale(loss).backward()
@@ -175,7 +197,8 @@ def train(cfg: dict, run_dir: Path, cache_dir: Path, splits: dict, device: str =
         train_time = time.time() - t0
         t1 = time.time()
         val_summary, per = evaluate_subjects(model, val_cache, threshold=cfg["threshold"], device=device,
-                                             channels=channels, amp=amp, channels_last=ch_last)
+                                             channels=channels, amp=amp, channels_last=ch_last,
+                                             context=context, context_mode=context_mode)
         val_dice = val_summary["dice_pos_mean"]
         rec = dict(event="epoch", epoch=epoch, train_loss=float(np.mean(losses)), grad_norm_mean=float(np.mean(gnorms)),
                    grad_norm_p95=float(np.percentile(gnorms, 95)), clip_frac=clipped / max(len(gnorms), 1), lr_end=lr,

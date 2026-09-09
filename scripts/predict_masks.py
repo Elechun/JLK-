@@ -11,6 +11,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from strokeai.data.dataset import SubjectCache  # noqa: E402
 from strokeai.models import UNet2D  # noqa: E402
+from strokeai.data.dataset import context_channel_count  # noqa: E402
 from strokeai.train import predict_subject  # noqa: E402
 
 if __name__ == "__main__":
@@ -24,7 +25,10 @@ if __name__ == "__main__":
     cfg = json.load(open(a.run / "config.json"))
     torch.set_num_threads(cfg.get("threads", 4))
     channels = cfg.get("channels")
-    model = UNet2D(in_ch=2 if channels is None else len(channels), base=cfg["base_channels"], depth=cfg["depth"])
+    context = int(cfg.get("context", 0) or 0)  # A4b: 2.5-D runs stack neighbouring slices as channels
+    context_mode = cfg.get("context_mode", "all")
+    in_ch = context_channel_count(2 if channels is None else len(channels), context, context_mode)
+    model = UNet2D(in_ch=in_ch, base=cfg["base_channels"], depth=cfg["depth"])
     model.load_state_dict(torch.load(a.run / "best.pt", map_location="cpu"))
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
@@ -35,6 +39,7 @@ if __name__ == "__main__":
     cache = SubjectCache(a.cache, ids)
     thr = a.threshold or cfg["threshold"]
     for sid in ids:
-        prob = predict_subject(model, cache.img[sid], device=device, channels=channels)
+        prob = predict_subject(model, cache.img[sid], device=device, channels=channels,
+                               context=context, context_mode=context_mode)
         np.savez_compressed(out / f"{sid}.npz", mask=(prob >= thr).astype(np.uint8), prob_max=prob.max())
     print("wrote", len(ids), "masks to", out)

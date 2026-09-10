@@ -16,17 +16,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from math import erf, sqrt
 from pathlib import Path
 
 import numpy as np
 
-
-def hanley_mcneil_se(auc: float, n1: int, n2: int) -> float:
-    """SE of an AUC with n1 positives and n2 negatives (exponential-distribution approximation)."""
-    q1 = auc / (2 - auc)
-    q2 = 2 * auc**2 / (1 + auc)
-    return sqrt((auc * (1 - auc) + (n1 - 1) * (q1 - auc**2) + (n2 - 1) * (q2 - auc**2)) / (n1 * n2))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+# A7 2026-09-10: the Hanley-McNeil SE used to be defined here; it now lives in metrics.py so that the
+# prognosis power calculation and this one share ONE implementation (CLAUDE.md: metrics live in
+# strokeai/metrics.py). The formula and every number this script writes are unchanged.
+from strokeai.metrics import hanley_mcneil_se  # noqa: E402
 
 
 def norm_cdf(z: float) -> float:

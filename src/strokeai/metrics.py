@@ -210,3 +210,193 @@ def multiclass_auc(y_true: np.ndarray, proba: np.ndarray, classes: list) -> dict
         yb = (y_true == c).astype(int)
         per[str(c)] = float(roc_auc_score(yb, proba[:, j])) if 0 < yb.sum() < len(yb) else float("nan")
     return {"macro_auc_ovr": float(np.nanmean(list(per.values()))), "per_class_auc": per}
+
+
+# ---------------------------------------------------------------------------------------------
+# Prognosis (discharge mRS) metrics - A7 2026-09-10.
+# The outcome is binary "poor" = mRS 3-6 vs "good" = mRS 0-2 (charter, extension task).  Everything
+# below scores a *probability of poor outcome*, so calibration is reported next to discrimination:
+# an AUC says only how the subjects are ranked, and a prognosis model that is used at the bedside is
+# read as an absolute risk.
+# ---------------------------------------------------------------------------------------------
+
+
+def binary_auc(y_true: np.ndarray, score: np.ndarray) -> float:
+    """ROC-AUC of a single score against a 0/1 outcome. NaN when one class is absent."""
+    from sklearn.metrics import roc_auc_score
+
+    y_true = np.asarray(y_true).astype(int)
+    score = np.asarray(score, float)
+    if len(y_true) < 2 or y_true.sum() == 0 or y_true.sum() == len(y_true):
+        return float("nan")
+    return float(roc_auc_score(y_true, score))
+
+
+def brier_score(y_true: np.ndarray, proba: np.ndarray) -> float:
+    """Mean squared error of the predicted probability (Brier 1950). Lower is better; 0.25 = coin flip."""
+    y_true = np.asarray(y_true, float)
+    proba = np.asarray(proba, float)
+    return float(np.mean((proba - y_true) ** 2))
+
+
+def brier_skill_score(y_true: np.ndarray, proba: np.ndarray) -> float:
+    """1 - Brier / Brier(no-skill), where the no-skill reference predicts the observed prevalence.
+
+    A raw Brier score is not comparable across cohorts with different event rates, so the skill score
+    against the prevalence-only forecast is reported next to it.
+    """
+    y_true = np.asarray(y_true, float)
+    ref = brier_score(y_true, np.full_like(y_true, y_true.mean()))
+    return float(1 - brier_score(y_true, proba) / ref) if ref > 0 else float("nan")
+
+
+def _logit(p: np.ndarray, eps: float = 1e-6) -> np.ndarray:
+    p = np.clip(np.asarray(p, float), eps, 1 - eps)
+    return np.log(p / (1 - p))
+
+
+def calibration_slope_intercept(y_true: np.ndarray, proba: np.ndarray) -> dict:
+    """Cox (1958) calibration: refit `logit(y) = a + b * logit(p_hat)` on the evaluation set.
+
+    * slope b = 1 and intercept a = 0 is perfect calibration.
+    * b < 1 means the predictions are too extreme (the usual sign of overfitting);
+      b > 1 means they are too timid.
+    * `calibration_in_the_large` is the mean predicted risk minus the observed event rate.
+    Returns NaN slope/intercept when one outcome class is absent (the refit is undefined).
+    """
+    from sklearn.linear_model import LogisticRegression
+
+    y_true = np.asarray(y_true).astype(int)
+    proba = np.asarray(proba, float)
+    out = {"mean_predicted": float(proba.mean()), "observed_rate": float(y_true.mean()),
+           "calibration_in_the_large": float(proba.mean() - y_true.mean())}
+    if len(set(y_true.tolist())) < 2:
+        return out | {"slope": float("nan"), "intercept": float("nan")}
+    lr = LogisticRegression(penalty=None, max_iter=1000)
+    lr.fit(_logit(proba).reshape(-1, 1), y_true)
+    return out | {"slope": float(lr.coef_[0, 0]), "intercept": float(lr.intercept_[0])}
+
+
+def calibration_bins(y_true: np.ndarray, proba: np.ndarray, n_bins: int = 5) -> list:
+    """Equal-count (quantile) calibration table: predicted vs observed risk per bin."""
+    y_true = np.asarray(y_true, float)
+    proba = np.asarray(proba, float)
+    order = np.argsort(proba)
+    chunks = np.array_split(order, n_bins)
+    return [{"n": int(len(c)), "mean_predicted": float(proba[c].mean()),
+             "observed_rate": float(y_true[c].mean()),
+             "p_lo": float(proba[c].min()), "p_hi": float(proba[c].max())} for c in chunks if len(c)]
+
+
+def binary_threshold_metrics(y_true: np.ndarray, proba: np.ndarray, threshold: float = 0.5) -> dict:
+    """Confusion matrix and the derived rates at a fixed operating point."""
+    y_true = np.asarray(y_true).astype(int)
+    pred = (np.asarray(proba, float) >= threshold).astype(int)
+    tp = int(((pred == 1) & (y_true == 1)).sum())
+    fp = int(((pred == 1) & (y_true == 0)).sum())
+    fn = int(((pred == 0) & (y_true == 1)).sum())
+    tn = int(((pred == 0) & (y_true == 0)).sum())
+    sens = tp / (tp + fn) if tp + fn else float("nan")
+    spec = tn / (tn + fp) if tn + fp else float("nan")
+    return {"threshold": float(threshold), "confusion": {"tp": tp, "fp": fp, "fn": fn, "tn": tn},
+            "sensitivity": sens, "specificity": spec,
+            "ppv": tp / (tp + fp) if tp + fp else float("nan"),
+            "npv": tn / (tn + fn) if tn + fn else float("nan"),
+            "accuracy": (tp + tn) / len(y_true) if len(y_true) else float("nan"),
+            "balanced_accuracy": float(np.nanmean([sens, spec]))}
+
+
+def prognosis_summary(y_true: np.ndarray, proba: np.ndarray, threshold: float = 0.5,
+                      n_bins: int = 5) -> dict:
+    """Discrimination + calibration + one operating point, for a poor-outcome probability."""
+    y_true = np.asarray(y_true).astype(int)
+    proba = np.asarray(proba, float)
+    return {"n": int(len(y_true)), "n_poor": int(y_true.sum()), "n_good": int((1 - y_true).sum()),
+            "auc": binary_auc(y_true, proba),
+            "brier": brier_score(y_true, proba),
+            "brier_skill": brier_skill_score(y_true, proba),
+            "calibration": calibration_slope_intercept(y_true, proba),
+            "calibration_bins": calibration_bins(y_true, proba, n_bins),
+            "operating_point": binary_threshold_metrics(y_true, proba, threshold)}
+
+
+def bootstrap_binary_auc_ci(y_true: np.ndarray, score: np.ndarray, n_boot: int = 2000,
+                            alpha: float = 0.05, seed: int = 0) -> dict:
+    """Percentile bootstrap CI of a binary AUC, resampling *subjects*.
+
+    Resamples that end up with a single outcome class are dropped (the AUC is undefined there) and
+    the number dropped is reported, mirroring the etiology bootstrap rule fixed by A5a/A5b.
+    """
+    y_true = np.asarray(y_true).astype(int)
+    score = np.asarray(score, float)
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    vals, dropped = [], 0
+    while len(vals) < n_boot:
+        i = rng.integers(0, n, n)
+        if 0 < y_true[i].sum() < n:
+            vals.append(binary_auc(y_true[i], score[i]))
+        else:
+            dropped += 1
+            if dropped > 100 * n_boot:
+                break
+    v = np.asarray(vals, float)
+    return {"auc": binary_auc(y_true, score),
+            "ci95": [float(np.nanpercentile(v, 100 * alpha / 2)), float(np.nanpercentile(v, 100 * (1 - alpha / 2)))],
+            "boot_sd": float(np.nanstd(v, ddof=1)), "n_boot_effective": int(len(v)),
+            "n_resamples_dropped_single_class": int(dropped), "seed": int(seed)}
+
+
+def paired_auc_delta_ci(y_true: np.ndarray, score_a: np.ndarray, score_b: np.ndarray,
+                        n_boot: int = 2000, alpha: float = 0.05, seed: int = 0) -> dict:
+    """Paired subject bootstrap of AUC(a) - AUC(b): both scores are evaluated on the SAME resample.
+
+    `p_gt_0` is the fraction of resamples with a positive difference. It is neither a p-value nor a
+    posterior probability (A5a item 5); it is reported only as a description of the resample cloud.
+    """
+    y_true = np.asarray(y_true).astype(int)
+    a = np.asarray(score_a, float)
+    b = np.asarray(score_b, float)
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    da, dropped = [], 0
+    while len(da) < n_boot:
+        i = rng.integers(0, n, n)
+        if 0 < y_true[i].sum() < n:
+            da.append(binary_auc(y_true[i], a[i]) - binary_auc(y_true[i], b[i]))
+        else:
+            dropped += 1
+            if dropped > 100 * n_boot:
+                break
+    d = np.asarray(da, float)
+    return {"auc_a": binary_auc(y_true, a), "auc_b": binary_auc(y_true, b),
+            "delta": binary_auc(y_true, a) - binary_auc(y_true, b),
+            "delta_ci95": [float(np.nanpercentile(d, 100 * alpha / 2)), float(np.nanpercentile(d, 100 * (1 - alpha / 2)))],
+            "delta_boot_sd": float(np.nanstd(d, ddof=1)), "p_gt_0": float(np.mean(d > 0)),
+            "n_boot_effective": int(len(d)), "n_resamples_dropped_single_class": int(dropped), "seed": int(seed)}
+
+
+def hanley_mcneil_se(auc: float, n1: int, n2: int) -> float:
+    """SE of an AUC with n1 positives and n2 negatives, Hanley & McNeil (1982) exponential approximation.
+
+    Used to size the pre-registered test-set thresholds before the labels are read (A6 for etiology,
+    A7 for prognosis). Defined here so that no analysis script re-implements it (CLAUDE.md).
+    """
+    from math import sqrt
+
+    q1 = auc / (2 - auc)
+    q2 = 2 * auc**2 / (1 + auc)
+    return float(sqrt((auc * (1 - auc) + (n1 - 1) * (q1 - auc**2) + (n2 - 1) * (q2 - auc**2)) / (n1 * n2)))
+
+
+def ordinal_summary(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+    """Auxiliary ordinal-mRS (0-6) agreement: Spearman rho, MAE, and |error| <= 1 rate."""
+    from scipy import stats as _st
+
+    y_true = np.asarray(y_true, float)
+    y_pred = np.asarray(y_pred, float)
+    rho = _st.spearmanr(y_true, y_pred)
+    err = np.abs(y_pred - y_true)
+    return {"n": int(len(y_true)), "spearman_rho": float(rho.statistic), "spearman_p": float(rho.pvalue),
+            "mae": float(err.mean()), "within_1_rate": float((err <= 1).mean()),
+            "rmse": float(np.sqrt((err**2).mean()))}

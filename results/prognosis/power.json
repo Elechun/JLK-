@@ -1,0 +1,209 @@
+{
+ "note": "test outcome balance is ESTIMATED from the dev proportion; no test mRS value was read",
+ "n_test_with_mrs": 82,
+ "assumed_n_poor": 42,
+ "assumed_n_good": 40,
+ "dev_estimates": {
+  "nested_cv_auc_imaging:argmax": 0.8209275001727832,
+  "frozen_plain_cv_auc": 0.8309903932545443,
+  "clinical_only_cv_auc": 0.7672955974842768,
+  "which_is_used_as_the_true_value": "nested CV (the plain CV of the frozen configuration is optimistic - A5a item 8)"
+ },
+ "analytic": {
+  "se_at_dev_auc": 0.04659282175870246,
+  "se_at_chance": 0.0641643475152946,
+  "expected_ci95_halfwidth": 0.09132193064705682,
+  "auc >= 0.6": {
+   "power_if_true_equals_nested_dev": 0.999998940149561,
+   "power_if_true_is_0.75": 0.9973578684879458,
+   "power_if_true_is_clinical_only_dev": 0.9993194084157692,
+   "false_pass_if_true_is_chance": 0.059557634293138206
+  },
+  "auc >= 0.65": {
+   "power_if_true_equals_nested_dev": 0.9998780289010949,
+   "power_if_true_is_0.75": 0.9685182731082018,
+   "power_if_true_is_clinical_only_dev": 0.9876333437201578,
+   "false_pass_if_true_is_chance": 0.009700192646316386
+  },
+  "auc >= 0.68": {
+   "power_if_true_equals_nested_dev": 0.9987554410684988,
+   "power_if_true_is_0.75": 0.9034759230545555,
+   "power_if_true_is_clinical_only_dev": 0.9526602493698602,
+   "false_pass_if_true_is_chance": 0.0025135180472036778
+  },
+  "auc >= 0.7": {
+   "power_if_true_equals_nested_dev": 0.9952761001393919,
+   "power_if_true_is_0.75": 0.8237431892366147,
+   "power_if_true_is_clinical_only_dev": 0.9011840013188523,
+   "false_pass_if_true_is_chance": 0.0009135209580890535
+  },
+  "auc >= 0.72": {
+   "power_if_true_equals_nested_dev": 0.9848505132967894,
+   "power_if_true_is_0.75": 0.7115214166001063,
+   "power_if_true_is_clinical_only_dev": 0.8173841928039749,
+   "false_pass_if_true_is_chance": 0.0003032449455944164
+  },
+  "auc >= 0.75": {
+   "power_if_true_equals_nested_dev": 0.9360310137615893,
+   "power_if_true_is_0.75": 0.5,
+   "power_if_true_is_clinical_only_dev": 0.6297201310030577,
+   "false_pass_if_true_is_chance": 4.8847839473897814e-05
+  }
+ },
+ "balance_sensitivity": {
+  "poor_frac=0.4": {
+   "n_poor": 33,
+   "n_good": 49,
+   "se": 0.05000078813453717,
+   "power_at_0.70": 0.9922079316901202
+  },
+  "poor_frac=0.45": {
+   "n_poor": 37,
+   "n_good": 45,
+   "se": 0.0481915354657353,
+   "power_at_0.70": 0.9939516357784863
+  },
+  "poor_frac=0.5": {
+   "n_poor": 41,
+   "n_good": 41,
+   "se": 0.04685876090573432,
+   "power_at_0.70": 0.9950697132682055
+  },
+  "poor_frac=0.5074": {
+   "n_poor": 42,
+   "n_good": 40,
+   "se": 0.04659282175870246,
+   "power_at_0.70": 0.9952761001393919
+  },
+  "poor_frac=0.55": {
+   "n_poor": 45,
+   "n_good": 37,
+   "se": 0.04594848563190103,
+   "power_at_0.70": 0.9957533827486194
+  },
+  "poor_frac=0.6": {
+   "n_poor": 49,
+   "n_good": 33,
+   "se": 0.04544470102146238,
+   "power_at_0.70": 0.9961043359375339
+  }
+ },
+ "simulation": {
+  "true_auc=0.8209": {
+   "true_auc": 0.8209275001727832,
+   "n1": 42,
+   "n2": 40,
+   "threshold": 0.7,
+   "n_sim": 2000,
+   "n_boot": 2000,
+   "rates": {
+    "PASS": 0.992,
+    "INCONCLUSIVE": 0.0,
+    "FAIL": 0.008
+   },
+   "mean_auc_hat": 0.8212261904761904,
+   "sd_auc_hat": 0.04585614325507142,
+   "mean_ci_lower": 0.7251354391672545
+  },
+  "true_auc=0.75": {
+   "true_auc": 0.75,
+   "n1": 42,
+   "n2": 40,
+   "threshold": 0.7,
+   "n_sim": 2000,
+   "n_boot": 2000,
+   "rates": {
+    "PASS": 0.8235,
+    "INCONCLUSIVE": 0.0,
+    "FAIL": 0.1765
+   },
+   "mean_auc_hat": 0.7503657738095239,
+   "sd_auc_hat": 0.05357539168209388,
+   "mean_ci_lower": 0.6400908145498702
+  },
+  "true_auc=0.7673": {
+   "true_auc": 0.7672955974842768,
+   "n1": 42,
+   "n2": 40,
+   "threshold": 0.7,
+   "n_sim": 2000,
+   "n_boot": 2000,
+   "rates": {
+    "PASS": 0.8985,
+    "INCONCLUSIVE": 0.0,
+    "FAIL": 0.1015
+   },
+   "mean_auc_hat": 0.7676238095238095,
+   "sd_auc_hat": 0.052007200402648446,
+   "mean_ci_lower": 0.6603162354657377
+  },
+  "true_auc=0.65": {
+   "true_auc": 0.65,
+   "n1": 42,
+   "n2": 40,
+   "threshold": 0.7,
+   "n_sim": 2000,
+   "n_boot": 2000,
+   "rates": {
+    "PASS": 0.2115,
+    "INCONCLUSIVE": 0.0,
+    "FAIL": 0.7885
+   },
+   "mean_auc_hat": 0.6502830357142857,
+   "sd_auc_hat": 0.060758180106921265,
+   "mean_ci_lower": 0.5282153092352774
+  },
+  "true_auc=0.5": {
+   "true_auc": 0.5,
+   "n1": 42,
+   "n2": 40,
+   "threshold": 0.7,
+   "n_sim": 2000,
+   "n_boot": 2000,
+   "rates": {
+    "PASS": 0.0005,
+    "INCONCLUSIVE": 0.0,
+    "FAIL": 0.9995
+   },
+   "mean_auc_hat": 0.4998580357142857,
+   "sd_auc_hat": 0.06511694578378596,
+   "mean_ci_lower": 0.37388403023551237
+  }
+ },
+ "secondary_delta": {
+  "dev_delta": 0.05363190268850637,
+  "dev_delta_ci95": [
+   0.026533255439092497,
+   0.08406852755177924
+  ],
+  "dev_delta_boot_sd": 0.014470681998688721,
+  "n_dev": 538,
+  "projected_test_delta_sd": 0.03706578577815322,
+  "projected_test_ci95_halfwidth": 0.0726489401251803,
+  "power_for_ci_lower_gt_0_at_dev_delta": 0.3039540584228728,
+  "n_needed_for_80pct_power": 308,
+  "verdict": "reported with a CI, NEVER gated: a CI-lower-bound > 0 rule on n = 82 would fail most of the time even if the dev increment is exactly right"
+ },
+ "generalisation_P1b": {
+  "dev_cv_auc": 0.8209275001727832,
+  "dev_bootstrap_sd": 0.017169764084395314,
+  "test_se_est": 0.04659282175870246,
+  "sd_of_the_difference": 0.04965573318512182,
+  "band": 0.1,
+  "band_in_sd": 2.0138661456712246,
+  "false_alarm_if_true_difference_is_zero": 0.04402358876162249,
+  "pass_rate_if_true_auc_is": {
+   "0.7": 0.3266591392021998,
+   "0.72": 0.4920589785367965,
+   "0.75": 0.7336761931306297,
+   "0.767": 0.8386274677458256
+  },
+  "power_to_detect_true_auc_of": {
+   "0.7": 0.6733408607978002,
+   "0.72": 0.5079410214632035,
+   "0.75": 0.2663238068693703,
+   "0.767": 0.16137253225417436
+  },
+  "comment": "one-sided reading: a test AUC below dev - band means the dev estimate did not transport"
+ }
+}

@@ -1,0 +1,629 @@
+{
+ "cohort": {
+  "n_eligible": 1451,
+  "n_mrs_present": 620,
+  "n_mrs_missing": 831,
+  "availability_counts_by_split": {
+   "train": {
+    "n": 1015,
+    "n_mrs_present": 443
+   },
+   "val": {
+    "n": 218,
+    "n_mrs_present": 95
+   },
+   "test": {
+    "n": 218,
+    "n_mrs_present": 82
+   }
+  },
+  "note": "only COUNTS by split; no mRS value is grouped by split (charter)"
+ },
+ "continuous": {
+  "mask_acute_ml": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 39.41955378508049,
+    "sd": 63.87021855138204,
+    "median": 15.082089710712433,
+    "q1": 2.8063268840312956,
+    "q3": 47.36548087072373
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 24.27713283075136,
+    "sd": 48.303202856209225,
+    "median": 5.305938397407532,
+    "q1": 1.2911858325004577,
+    "q3": 23.374296506881713
+   },
+   "smd": 0.2674195137014283,
+   "mannwhitney_p": 8.063340076625596e-12
+  },
+  "log1p_mask_acute_ml": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 2.678633401801721,
+    "sd": 1.5317170405772391,
+    "median": 2.7777026334701365,
+    "q1": 1.3366607007754903,
+    "q3": 3.878785921946501
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 2.124266309464284,
+    "sd": 1.447859754651628,
+    "median": 1.841491792189573,
+    "q1": 0.8290695143068607,
+    "q3": 3.1935272867972326
+   },
+   "smd": 0.37196401201034734,
+   "mannwhitney_p": 8.063340076625596e-12
+  },
+  "mask_acute_n_components": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 6.024193548387097,
+    "sd": 8.072834549800701,
+    "median": 3.0,
+    "q1": 1.0,
+    "q3": 8.0
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 5.073405535499398,
+    "sd": 8.029202893889682,
+    "median": 2.0,
+    "q1": 1.0,
+    "q3": 6.0
+   },
+   "smd": 0.11809493372118633,
+   "mannwhitney_p": 0.00018290732697858397
+  },
+  "mask_acute_n_slices": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 8.175806451612903,
+    "sd": 4.643308993766189,
+    "median": 8.0,
+    "q1": 4.0,
+    "q3": 12.0
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 6.819494584837545,
+    "sd": 4.2577957116988365,
+    "median": 6.0,
+    "q1": 3.0,
+    "q3": 10.0
+   },
+   "smd": 0.30446592886556506,
+   "mannwhitney_p": 2.1814902221418064e-08
+  },
+  "nihss": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 9.570967741935483,
+    "sd": 8.2554018560635,
+    "median": 7.0,
+    "q1": 3.0,
+    "q3": 15.0
+   },
+   "mrs_missing": {
+    "n": 328,
+    "n_missing": 503,
+    "mean": 6.1676829268292686,
+    "sd": 7.3571570427963655,
+    "median": 3.0,
+    "q1": 1.0,
+    "q3": 9.0
+   },
+   "smd": 0.43524782499171766,
+   "mannwhitney_p": 2.4295496984434716e-13
+  },
+  "age": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 63.90806451612903,
+    "sd": 14.38585284225659,
+    "median": 64.0,
+    "q1": 55.0,
+    "q3": 75.0
+   },
+   "mrs_missing": {
+    "n": 328,
+    "n_missing": 503,
+    "mean": 66.6890243902439,
+    "sd": 14.217433465143937,
+    "median": 66.0,
+    "q1": 57.0,
+    "q3": 78.0
+   },
+   "smd": -0.1944470042861071,
+   "mannwhitney_p": 0.006191706745436286
+  },
+  "bmi": {
+   "mrs_present": {
+    "n": 592,
+    "n_missing": 28,
+    "mean": 28.51690878378378,
+    "sd": 6.887067976884697,
+    "median": 27.48,
+    "q1": 24.2125,
+    "q3": 32.195
+   },
+   "mrs_missing": {
+    "n": 306,
+    "n_missing": 525,
+    "mean": 29.160620915032677,
+    "sd": 9.178631524491045,
+    "median": 27.705,
+    "q1": 23.884999999999998,
+    "q3": 33.0875
+   },
+   "smd": -0.07933201064629987,
+   "mannwhitney_p": 0.8379331427621574
+  },
+  "voxel_volume_mm3": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 5.545939281486696,
+    "sd": 1.661210758295007,
+    "median": 5.845234155654907,
+    "q1": 4.843138575553894,
+    "q3": 7.336339354515076
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 5.672305440357589,
+    "sd": 1.6283273557448812,
+    "median": 6.271796226501465,
+    "q1": 4.843140602111816,
+    "q3": 7.336349487304687
+   },
+   "smd": -0.07682528139587096,
+   "mannwhitney_p": 0.07473942845456294
+  },
+  "trace_SliceThickness": {
+   "mrs_present": {
+    "n": 620,
+    "n_missing": 0,
+    "mean": 5.0,
+    "sd": 0.0,
+    "median": 5.0,
+    "q1": 5.0,
+    "q3": 5.0
+   },
+   "mrs_missing": {
+    "n": 831,
+    "n_missing": 0,
+    "mean": 4.9975932611311675,
+    "sd": 0.04902896270010814,
+    "median": 5.0,
+    "q1": 5.0,
+    "q3": 5.0
+   },
+   "smd": 0.0694210638355164,
+   "mannwhitney_p": 0.22209230416778236
+  }
+ },
+ "categorical": {
+  "sex": {
+   "levels": {
+    "F": {
+     "n_present": 300,
+     "frac_present": 0.4838709677419355,
+     "n_missing": 169,
+     "frac_missing": 0.20336943441636582,
+     "smd": 0.6182061884094281
+    },
+    "M": {
+     "n_present": 320,
+     "frac_present": 0.5161290322580645,
+     "n_missing": 159,
+     "frac_missing": 0.19133574007220217,
+     "smd": 0.7222389670158073
+    },
+    "nan": {
+     "n_present": 0,
+     "frac_present": 0.0,
+     "n_missing": 503,
+     "frac_missing": 0.605294825511432,
+     "smd": -1.751306132785387
+    }
+   },
+   "chi2_p": 1.2591585884585345e-125,
+   "observed_only": {
+    "n_present": 620,
+    "n_missing": 328,
+    "levels": {
+     "F": {
+      "n_present": 300,
+      "frac_present": 0.4838709677419355,
+      "n_missing": 169,
+      "frac_missing": 0.5152439024390244,
+      "smd": -0.06277679598044428
+     },
+     "M": {
+      "n_present": 320,
+      "frac_present": 0.5161290322580645,
+      "n_missing": 159,
+      "frac_missing": 0.4847560975609756,
+      "smd": 0.06277679598044428
+     }
+    },
+    "chi2_p": 0.3948987630163666
+   }
+  },
+  "priorstroke": {
+   "levels": {
+    "0.0": {
+     "n_present": 550,
+     "frac_present": 0.8870967741935484,
+     "n_missing": 285,
+     "frac_missing": 0.34296028880866425,
+     "smd": 1.3488105057964561
+    },
+    "1.0": {
+     "n_present": 70,
+     "frac_present": 0.11290322580645161,
+     "n_missing": 43,
+     "frac_missing": 0.05174488567990373,
+     "smd": 0.22389900529595783
+    },
+    "nan": {
+     "n_present": 0,
+     "frac_present": 0.0,
+     "n_missing": 503,
+     "frac_missing": 0.605294825511432,
+     "smd": -1.751306132785387
+    }
+   },
+   "chi2_p": 1.361037774134427e-125,
+   "observed_only": {
+    "n_present": 620,
+    "n_missing": 328,
+    "levels": {
+     "0.0": {
+      "n_present": 550,
+      "frac_present": 0.8870967741935484,
+      "n_missing": 285,
+      "frac_missing": 0.8689024390243902,
+      "smd": 0.055612990383871096
+     },
+     "1.0": {
+      "n_present": 70,
+      "frac_present": 0.11290322580645161,
+      "n_missing": 43,
+      "frac_missing": 0.13109756097560976,
+      "smd": -0.05561299038387114
+     }
+    },
+    "chi2_p": 0.4733393077779068
+   }
+  },
+  "trace_Manufacturer": {
+   "levels": {
+    "GE": {
+     "n_present": 0,
+     "frac_present": 0.0,
+     "n_missing": 16,
+     "frac_missing": 0.019253910950661854,
+     "smd": -0.19815096184722797
+    },
+    "Philips": {
+     "n_present": 620,
+     "frac_present": 1.0,
+     "n_missing": 807,
+     "frac_missing": 0.9711191335740073,
+     "smd": 0.24388430433987682
+    },
+    "Siemens": {
+     "n_present": 0,
+     "frac_present": 0.0,
+     "n_missing": 8,
+     "frac_missing": 0.009626955475330927,
+     "smd": -0.13943123487514997
+    }
+   },
+   "chi2_p": 0.00011125944080940365,
+   "observed_only": {
+    "n_present": 620,
+    "n_missing": 831,
+    "levels": {
+     "GE": {
+      "n_present": 0,
+      "frac_present": 0.0,
+      "n_missing": 16,
+      "frac_missing": 0.019253910950661854,
+      "smd": -0.19815096184722797
+     },
+     "Philips": {
+      "n_present": 620,
+      "frac_present": 1.0,
+      "n_missing": 807,
+      "frac_missing": 0.9711191335740073,
+      "smd": 0.24388430433987682
+     },
+     "Siemens": {
+      "n_present": 0,
+      "frac_present": 0.0,
+      "n_missing": 8,
+      "frac_missing": 0.009626955475330927,
+      "smd": -0.13943123487514997
+     }
+    },
+    "chi2_p": 0.00011125944080940365
+   }
+  },
+  "trace_MagneticFieldStrength": {
+   "levels": {
+    "1.5": {
+     "n_present": 475,
+     "frac_present": 0.7661290322580645,
+     "n_missing": 679,
+     "frac_missing": 0.8170878459687124,
+     "smd": -0.12571302691117264
+    },
+    "3.0": {
+     "n_present": 145,
+     "frac_present": 0.23387096774193547,
+     "n_missing": 152,
+     "frac_missing": 0.1829121540312876,
+     "smd": 0.1257130269111725
+    }
+   },
+   "chi2_p": 0.020657443363937496,
+   "observed_only": {
+    "n_present": 620,
+    "n_missing": 831,
+    "levels": {
+     "1.5": {
+      "n_present": 475,
+      "frac_present": 0.7661290322580645,
+      "n_missing": 679,
+      "frac_missing": 0.8170878459687124,
+      "smd": -0.12571302691117264
+     },
+     "3.0": {
+      "n_present": 145,
+      "frac_present": 0.23387096774193547,
+      "n_missing": 152,
+      "frac_missing": 0.1829121540312876,
+      "smd": 0.1257130269111725
+     }
+    },
+    "chi2_p": 0.020657443363937496
+   }
+  },
+  "etiology_code": {
+   "levels": {
+    "CE": {
+     "n_present": 100,
+     "frac_present": 0.16129032258064516,
+     "n_missing": 49,
+     "frac_missing": 0.05896510228640193,
+     "smd": 0.33132141407199256
+    },
+    "Cryptogenic": {
+     "n_present": 268,
+     "frac_present": 0.432258064516129,
+     "n_missing": 135,
+     "frac_missing": 0.1624548736462094,
+     "smd": 0.6177737162535321
+    },
+    "LAA": {
+     "n_present": 159,
+     "frac_present": 0.2564516129032258,
+     "n_missing": 73,
+     "frac_missing": 0.08784596871239471,
+     "smd": 0.458196916292587
+    },
+    "OtherDet": {
+     "n_present": 48,
+     "frac_present": 0.07741935483870968,
+     "n_missing": 14,
+     "frac_missing": 0.01684717208182912,
+     "smd": 0.28878469383414657
+    },
+    "SVO": {
+     "n_present": 42,
+     "frac_present": 0.06774193548387097,
+     "n_missing": 42,
+     "frac_missing": 0.05054151624548736,
+     "smd": 0.07296570141061878
+    },
+    "nan": {
+     "n_present": 3,
+     "frac_present": 0.004838709677419355,
+     "n_missing": 518,
+     "frac_missing": 0.6233453670276775,
+     "smd": -1.7869601455693276
+    }
+   },
+   "chi2_p": 4.5202199464315264e-128,
+   "observed_only": {
+    "n_present": 617,
+    "n_missing": 313,
+    "levels": {
+     "CE": {
+      "n_present": 100,
+      "frac_present": 0.1620745542949757,
+      "n_missing": 49,
+      "frac_missing": 0.15654952076677317,
+      "smd": 0.01509751886119022
+     },
+     "Cryptogenic": {
+      "n_present": 268,
+      "frac_present": 0.4343598055105348,
+      "n_missing": 135,
+      "frac_missing": 0.43130990415335463,
+      "smd": 0.006155622387122256
+     },
+     "LAA": {
+      "n_present": 159,
+      "frac_present": 0.2576985413290113,
+      "n_missing": 73,
+      "frac_missing": 0.23322683706070288,
+      "smd": 0.056886172632972416
+     },
+     "OtherDet": {
+      "n_present": 48,
+      "frac_present": 0.07779578606158834,
+      "n_missing": 14,
+      "frac_missing": 0.04472843450479233,
+      "smd": 0.1382184144971716
+     },
+     "SVO": {
+      "n_present": 42,
+      "frac_present": 0.06807131280388978,
+      "n_missing": 42,
+      "frac_missing": 0.134185303514377,
+      "smd": -0.22061467038617164
+     }
+    },
+    "chi2_p": 0.007302106043770616
+   }
+  },
+  "in_participants_tsv": {
+   "levels": {
+    "False": {
+     "n_present": 0,
+     "frac_present": 0.0,
+     "n_missing": 184,
+     "frac_missing": 0.2214199759326113,
+     "smd": -0.7541743696966002
+    },
+    "True": {
+     "n_present": 620,
+     "frac_present": 1.0,
+     "n_missing": 647,
+     "frac_missing": 0.7785800240673887,
+     "smd": 0.7541743696966002
+    }
+   },
+   "chi2_p": 1.2512017448291496e-35,
+   "observed_only": {
+    "n_present": 620,
+    "n_missing": 831,
+    "levels": {
+     "False": {
+      "n_present": 0,
+      "frac_present": 0.0,
+      "n_missing": 184,
+      "frac_missing": 0.2214199759326113,
+      "smd": -0.7541743696966002
+     },
+     "True": {
+      "n_present": 620,
+      "frac_present": 1.0,
+      "n_missing": 647,
+      "frac_missing": 0.7785800240673887,
+      "smd": 0.7541743696966002
+     }
+    },
+    "chi2_p": 1.2512017448291496e-35
+   }
+  },
+  "race": {
+   "levels": {
+    "b": {
+     "n_present": 132,
+     "frac_present": 0.2129032258064516,
+     "n_missing": 91,
+     "frac_missing": 0.1095066185318893,
+     "smd": 0.28400390916763013
+    },
+    "nan": {
+     "n_present": 38,
+     "frac_present": 0.06129032258064516,
+     "n_missing": 525,
+     "frac_missing": 0.631768953068592,
+     "smd": -1.4977093934060843
+    },
+    "w": {
+     "n_present": 450,
+     "frac_present": 0.7258064516129032,
+     "n_missing": 215,
+     "frac_missing": 0.25872442839951865,
+     "smd": 1.0566526272078702
+    }
+   },
+   "chi2_p": 1.8213781716111403e-107,
+   "observed_only": {
+    "n_present": 582,
+    "n_missing": 306,
+    "levels": {
+     "b": {
+      "n_present": 132,
+      "frac_present": 0.2268041237113402,
+      "n_missing": 91,
+      "frac_missing": 0.2973856209150327,
+      "smd": -0.16101421376810862
+     },
+     "w": {
+      "n_present": 450,
+      "frac_present": 0.7731958762886598,
+      "n_missing": 215,
+      "frac_missing": 0.7026143790849673,
+      "smd": 0.16101421376810882
+     }
+    },
+    "chi2_p": 0.02618160223687873
+   }
+  }
+ },
+ "a2_block": {
+  "n_all_clinical_missing_in_index": 609,
+  "n_all_clinical_missing_and_eligible": 503,
+  "n_of_those_with_mrs": 0,
+  "median_lesion_ml": 6.875011413574219,
+  "median_lesion_ml_rest_eligible": 9.469237625598907,
+  "frac_3T": 0.18290258449304175,
+  "frac_3T_rest_eligible": 0.21624472573839662,
+  "note": "A2 F5: the clinical-variable block is missing for exactly the same subjects; this quantifies how much of the mRS missingness it explains",
+  "n_mrs_missing_inside_block": 503,
+  "n_mrs_missing_outside_block": 328
+ },
+ "mrs_missing_strata": {
+  "mrs_missing_in_all_clinical_block": {
+   "n": 503,
+   "median_lesion_ml": 6.875011413574219,
+   "median_nihss": null,
+   "median_age": null,
+   "frac_3T": 0.18290258449304175,
+   "frac_philips": 0.952286282306163,
+   "frac_etiology_labelled": 0.0
+  },
+  "mrs_missing_with_clinical": {
+   "n": 328,
+   "median_lesion_ml": 3.676572175502777,
+   "median_nihss": 3.0,
+   "median_age": 66.0,
+   "frac_3T": 0.18292682926829268,
+   "frac_philips": 1.0,
+   "frac_etiology_labelled": 0.5426829268292683
+  },
+  "mrs_present": {
+   "n": 620,
+   "median_lesion_ml": 15.082089710712433,
+   "median_nihss": 7.0,
+   "median_age": 64.0,
+   "frac_3T": 0.23387096774193547,
+   "frac_philips": 1.0,
+   "frac_etiology_labelled": 0.5629032258064516
+  }
+ }
+}

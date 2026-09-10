@@ -1,0 +1,38 @@
+{
+ "spec": {
+  "feature_set": "clinical_lesion_all",
+  "algo": "hgb",
+  "max_depth": 2,
+  "min_samples_leaf": 40
+ },
+ "name": "clinical_lesion_all|hgb|d=2,leaf=40",
+ "features": [
+  "age",
+  "sex_male",
+  "nihss",
+  "priorstroke",
+  "volume_ml",
+  "log_volume_ml",
+  "n_components",
+  "largest_component_ml",
+  "largest_component_frac",
+  "n_slices_involved",
+  "z_extent_frac",
+  "laterality_left_frac",
+  "bilateral",
+  "centroid_x_norm",
+  "centroid_y_norm",
+  "centroid_z_norm",
+  "spread_x_norm",
+  "spread_y_norm",
+  "multi_territory_proxy"
+ ],
+ "seed": 2026,
+ "threshold_primary": 0.5,
+ "selection_rule": "argmax",
+ "threshold_youden_dev": 0.4561877898092364,
+ "mask_source": "pred",
+ "pred_dir": "runs/seg_unet2d/pred_masks",
+ "dev_cv_auc": 0.8309903932545443,
+ "frozen_on": "2026-09-10 (dev only; test mRS not read)"
+}

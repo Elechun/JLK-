@@ -212,6 +212,9 @@ def main():
         res["test_predictions"] = {"participant_id": test["participant_id"].tolist(),
                                    "y": yt.tolist(), "p_frozen": np.round(pt, 6).tolist(),
                                    "p_clinical_only": np.round(pc, 6).tolist()}
+        print(f"TEST evaluated with the FROZEN spec from {a.frozen}: {frozen_cfg['name']}")
+        print("  (the 'frozen:' line printed above is this run's dev re-selection under "
+              f"--rule {a.rule}; it is NOT what scored the test split)")
         print("TEST AUC", round(res["test"]["primary"]["auc"], 4), res["test"]["primary"]["ci95"])
 
     out = a.out or Path("results/prognosis") / f"prognosis_{a.mask}{'_final' if a.final else ''}.json"

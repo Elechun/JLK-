@@ -214,6 +214,7 @@ git clone https://github.com/Elechun/JLK-.git && cd JLK-
 python -m venv .venv && source .venv/bin/activate && pip install -e .[dev]
 bash scripts/run_all.sh          # 다운로드(2.8 GB) → 인덱스 → split → 전처리 → 테스트 → 학습 → 진단 → 분류
 ```
+배경 개념(DWI·TOAST·mRS·Dice·ICC·검정력·누수 등)과 각 판단의 근거는 **`docs/04_concepts_explained.md`** 에 풀어 두었습니다.
 자세한 순서와 에이전트 실행 방법은 **`docs/01_server_runbook.md`**, 새 Claude Code 채팅에 붙여 넣을 프롬프트는 **`docs/02_handoff_prompt.md`**.
 
 **재현성은 주장이 아니라 실측이다.** 물리적으로 다른 GPU 2장에서 같은 seed·config 로 40 epoch 전체 학습(실측 **279 초**)을 다시 돌려
